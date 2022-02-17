@@ -1,0 +1,108 @@
+name: CPU
+
+on:
+  pull_request:
+    # triggered on pull requests to master or develop
+    branches:
+      - master
+      - develop
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - v*
+
+jobs:
+  # Build and push Docker image to GitHub Packages.
+  build-docker-image-cpu:
+    runs-on: ubuntu-18.04
+    env:
+      IMAGE_NAME: mala_conda_cpu
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Log into registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set environment variables
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          # Create environment variable to which all subsequent actions in this job have access
+          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
+
+      - name: Pull image from registry
+        run: docker pull $IMAGE_ID || true
+
+      - name: Build image
+        run: docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu --label "runnumber=${GITHUB_RUN_ID}"
+
+      - name: Tag and push image
+        run: |
+          # print github.ref contexts (for debugging)
+          echo github.ref = "${{ github.ref }}"
+          echo github.ref_name = "${{ github.ref_name }}"
+
+          # use Docker `latest` tag for pull requests and pushes without a git tag (default)
+          TAG=latest
+
+          # use Docker `x.x.x` tag for push tag events (set Docker tag to git version tag and strip "v" prefix from tag)
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && TAG=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo TAG=$TAG
+
+          docker tag $IMAGE_NAME $IMAGE_ID:$TAG
+          docker push $IMAGE_ID:$TAG
+
+  cpu-tests:
+    needs: build-docker-image-cpu
+    runs-on: ubuntu-18.04
+    container:
+      image: ghcr.io/mala-project/mala_conda_cpu:latest
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out repository (mala)
+        uses: actions/checkout@v2
+
+      - name: Install mala package
+        run: |
+          # epxort Docker image Conda environment for a later comparison
+          conda env export -n mala-cpu > env_1.yml
+
+          # install mala package
+          pip --no-cache-dir install -e .
+
+          # install extra dependencies
+          pip install oapackage
+          pip install pytest
+
+      - name: Check if Conda environment meets the specified requirements
+        run: |
+          # export Conda environment _with_ mala package installed in it (and extra dependencies)
+          conda env export -n mala-cpu > env_2.yml
+
+          # if comparison fails, `install/mala_cpu_[base]_environment.yml` needs to be aligned with
+          # `requirements.txt` and/or extra dependencies are missing in the Docker Conda environment
+          diff env_1.yml env_2.yml
+
+      - name: Check out repository (data)
+        uses: actions/checkout@v2
+        with:
+          repository: mala-project/test-data
+          path: mala_data
+          ref: v1.3.0
+          lfs: false
+
+      - name: Test mala
+        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --disable-warnings
