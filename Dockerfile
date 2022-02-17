@@ -11,8 +11,5 @@ ARG DEVICE=cpu
 COPY install/mala_${DEVICE}_base_environment.yml .
 RUN conda env create -f mala_${DEVICE}_base_environment.yml && rm -rf /opt/conda/pkgs/*
 
-# Install optional MALA dependencies into Conda environment with pip
-RUN /opt/conda/envs/mala-${DEVICE}/bin/pip install --no-input --no-cache-dir pytest oapackage pqkmeans
-
 RUN echo "source activate mala-${DEVICE}" > ~/.bashrc
 ENV PATH /opt/conda/envs/mala-${DEVICE}/bin:$PATH
