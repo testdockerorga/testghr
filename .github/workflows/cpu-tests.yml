@@ -2,13 +2,13 @@ name: CPU
 
 on:
   pull_request:
-    # triggered on pull requests to master or develop
+    # triggered on pull requests to main or develop
     branches:
-      - master
+      - main
       - develop
   push:
     branches:
-      - master
+      - main
       - develop
     tags:
       - v*
