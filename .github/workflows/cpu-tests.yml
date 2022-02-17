@@ -33,6 +33,7 @@ jobs:
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
           echo github.repository_owner = "${{ github.repository_owner }}"
+          echo GITHUB_RUN_ID = "${GITHUB_RUN_ID}"
 
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
