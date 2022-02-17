@@ -76,4 +76,5 @@ jobs:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
 
-
+      - name: Show os-release
+        run: cat /etc/os-release
