@@ -1,7 +1,8 @@
 name: CPU
 
 on:
-  pull_request:
+  pull_request_target:
+    types: [assigned, opened, synchronize, reopened]
     # triggered on pull requests to main or develop
     branches:
       - main
@@ -50,6 +51,7 @@ jobs:
       - name: Tag and push image
         run: |
           # print github.ref contexts (for debugging)
+          echo github.head_ref = "${{ github.head_ref }}"
           echo github.ref = "${{ github.ref }}"
           echo github.ref_name = "${{ github.ref_name }}"
 
