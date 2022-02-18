@@ -65,7 +65,7 @@ jobs:
           docker push $IMAGE_ID:$TAG
 
   cpu-tests:
-    needs: build-docker-image-cpu
+    needs: build-docker-temp-image-cpu
     runs-on: ubuntu-18.04
     container:
       image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu:temp
