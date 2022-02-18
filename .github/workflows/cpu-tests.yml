@@ -55,10 +55,7 @@ jobs:
           echo github.ref_name = "${{ github.ref_name }}"
 
           # use Docker `latest` tag for pull requests and pushes without a git tag (default)
-          TAG=latest
-
-          # use Docker `x.x.x` tag for push tag events (set Docker tag to git version tag and strip "v" prefix from tag)
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && TAG=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
+          TAG=temp
 
           echo IMAGE_ID=$IMAGE_ID
           echo TAG=$TAG
@@ -70,7 +67,7 @@ jobs:
     needs: build-docker-image-cpu
     runs-on: ubuntu-18.04
     container:
-      image: ghcr.io/testdockerorga/mala_conda_cpu:latest
+      image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu:temp
       credentials:
          username: ${{ github.actor }}
          password: ${{ secrets.GITHUB_TOKEN }}
