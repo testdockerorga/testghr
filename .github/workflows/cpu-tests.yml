@@ -84,7 +84,7 @@ jobs:
         if: github.event_name == 'push'
         run: echo "DOCKER_TAG=$(echo ${{ github.ref }} | cut -d'/' -f3- | sed 's/[^a-z0-9_-]/__/gi')"
 
-   cleanup:
+  cleanup:
     runs-on: ubuntu-18.04
     needs: cpu-tests
     if: always()
