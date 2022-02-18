@@ -14,8 +14,8 @@ on:
       - v*
 
 jobs:
-  # Build and push Docker image to GitHub Packages.
-  build-docker-image-cpu:
+  # Build and push Docker temporary image to GitHub Packages.
+  build-docker-temp-image-cpu:
     runs-on: ubuntu-18.04
     env:
       IMAGE_NAME: mala_conda_cpu
@@ -41,20 +41,20 @@ jobs:
           # Create environment variable to which all subsequent actions in this job have access
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
 
-      - name: Pull image from registry
+      - name: Pull latest image from registry
         run: docker pull $IMAGE_ID || true
 
-      - name: Build image
+      - name: Build temporary image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu --label "runnumber=${GITHUB_RUN_ID}"
 
-      - name: Tag and push image
+      - name: Tag and push temporary image
         run: |
           # print github.ref contexts (for debugging)
           echo github.head_ref = "${{ github.head_ref }}"
           echo github.ref = "${{ github.ref }}"
           echo github.ref_name = "${{ github.ref_name }}"
 
-          # use Docker `latest` tag for pull requests and pushes without a git tag (default)
+          # use Docker ... tag
           TAG=temp
 
           echo IMAGE_ID=$IMAGE_ID
