@@ -45,6 +45,7 @@ jobs:
         run: docker pull $IMAGE_ID || true
 
       - name: Build temporary image
+        id: build-temp
         run: |
           docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu
 
@@ -55,7 +56,15 @@ jobs:
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
 
-          [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal" || true
+          if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
+          then
+            echo "Image IDs are equal"
+            echo ":set-output name=IMAGE_IDS_EQUAL::true"
+          else
+            echo "Image IDs are differ"
+            echo ":set-output name=IMAGE_IDS_EQUAL::false"
+          fi
+
 
       - name: Tag and push temporary image
         # only necessary if temporary image is different from latest
@@ -97,6 +106,7 @@ jobs:
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      foo: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }}
 
   check-output:
     needs: build-temp-docker-image-cpu
@@ -129,8 +139,8 @@ jobs:
     needs: cpu-tests
     runs-on: ubuntu-18.04
     # triggered on pushes to main or develop (this includes merge commits of merged PRs)
-    #if: github.event_name == 'push'
-    if: ${{ (github.event_name == 'push') && (env.IMAGE_ID_OLD != env.IMAGE_ID_NEW) }}
+    if: github.event_name == 'push'
+    #if: ${{ (github.event_name == 'push') && steps.random-color-generator.outputs.SELECTED_COLOR == true }}
     steps:
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
