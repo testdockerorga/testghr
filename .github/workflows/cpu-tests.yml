@@ -46,13 +46,16 @@ jobs:
 
       - name: Build temporary image
         run: |
-          docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu #--label "runnumber=${GITHUB_RUN_ID}"
-          docker images --no-trunc --digests
-          IMAGE_ID_OLD=$(docker images --filter=reference=$IMAGE_ID --format "{{.ID}}" --no-trunc)
-          IMAGE_ID_NEW=$(docker images --filter=reference=$IMAGE_NAME --format "{{.ID}}" --no-trunc)
+          docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu
 
-          echo "IMAGE_ID_OLD=$IMAGE_ID_OLD"
-          echo "IMAGE_ID_NEW=$IMAGE_ID_NEW"
+          # get image IDs (hash of the local image JSON configuration) and check if images are equal
+          IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_ID)
+          IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME)
+
+          echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
+          echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
+
+          [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal"
 
 
       - name: Tag and push temporary image
@@ -63,6 +66,8 @@ jobs:
           echo "github.ref_name=${{ github.ref_name }}"
           echo "github.repository_owner=${{ github.repository_owner }}"
           echo "github.run_id=${{ github.run_id }}"
+
+          echo "IMAGE_ID_OLD=$IMAGE_ID_OLD"
 
           # Use GITHUB_RUN_ID, a unique number for each workflow run within a repository as a temporary Docker tag.
           # This number does not change for re-runs of the workflow.
