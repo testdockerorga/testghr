@@ -55,7 +55,7 @@ jobs:
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
 
-          [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal"
+        #  [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal"
 
 
       - name: Tag and push temporary image
