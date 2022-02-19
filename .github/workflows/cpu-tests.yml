@@ -59,10 +59,10 @@ jobs:
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
             echo "Image IDs are equal"
-            echo ":set-output name=IMAGE_IDS_EQUAL::true"
+            echo "::set-output name=IMAGE_IDS_EQUAL::true"
           else
             echo "Image IDs are differ"
-            echo ":set-output name=IMAGE_IDS_EQUAL::false"
+            echo "::set-output name=IMAGE_IDS_EQUAL::false"
           fi
 
 
@@ -85,6 +85,7 @@ jobs:
           #
           #   SHORT_GIT_HASH=$(git rev-parse --short "$GITHUB_SHA") # commit SHA that triggered the workflow
           #   TAG=${GITHUB_REF_NAME}-${SHORT_GIT_HASH}
+          #   echo ::set-output name=docker_tag::$(echo ${GITHUB_REF} | cut -d'/' -f3)-${GITHUB_SHA}
           #
           # This variable would have to be made available in context 'env' in order to be reused in subsequent jobs.
           # The 'env' context is however not available for the 'image' key, see FIXME in 'cpu-tests` job.
@@ -106,13 +107,15 @@ jobs:
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      foo: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }}
+      equal: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }}
 
   check-output:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
     steps:
-      - run: echo ${{needs.build-temp-docker-image-cpu.outputs.matrix}}
+      - run: |
+          echo "matrix=${{needs.build-temp-docker-image-cpu.outputs.matrix}}"
+          echo "equal=${{needs.build-temp-docker-image-cpu.outputs.equal}}"
 
   cpu-tests:
     needs: build-temp-docker-image-cpu
@@ -136,11 +139,11 @@ jobs:
         run: cat /etc/os-release
 
   push-temp-as-latest-docker-image-cpu:
-    needs: cpu-tests
+    needs: [cpu-tests, build-temp-docker-image-cpu]
     runs-on: ubuntu-18.04
     # triggered on pushes to main or develop (this includes merge commits of merged PRs)
-    if: github.event_name == 'push'
-    #if: ${{ (github.event_name == 'push') && steps.random-color-generator.outputs.SELECTED_COLOR == true }}
+    #if: github.event_name == 'push'
+    if: ${{ (github.event_name == 'push') && (needs.build-temp-docker-image-cpu.outputs.equal == false) }}
     steps:
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -157,7 +160,7 @@ jobs:
   cleanup:
     # Remove intermediate Docker image from ghcr.io
     runs-on: ubuntu-18.04
-    needs: cpu-tests
+    #needs: cpu-tests
     # FIXME: In the future, this workflow should _always_ be triggered ('always()') rather than skipped ('false').
     #        We currently skip it as the 'ghcr-delet-image-action' does not support GITHUB_TOKEN. It actually
     #        finds the image in the registry, but can't delete it and fails with cryptic 'Error: Package not found.'
