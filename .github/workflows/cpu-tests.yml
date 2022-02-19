@@ -84,14 +84,34 @@ jobs:
           docker tag $IMAGE_NAME $IMAGE_ID:$TAG
           docker push $IMAGE_ID:$TAG
 
+      - name: Set matrix
+        id: set-matrix
+        #run: echo "::set-output name=matrix::[\"latest\",${{ github.run_id }}]"
+        run: |
+          if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
+          then
+            echo "::set-output name=matrix::[\"latest\"]"
+          else
+            echo "::set-output name=matrix::[\"${{ github.run_id }}\"]"
+          fi
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+  check-output:
+    needs: build-temp-docker-image-cpu
+    runs-on: ubuntu-18.04
+    steps:
+      - run: echo ${{needs.build-temp-docker-image-cpu.outputs.matrix}}
+
   cpu-tests:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-        version:
-          - ${{ github.run_id }}
-          - latest
+       version: ${{fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix)}}
+       #version:
+       #  - ${{ github.run_id }}
     container:
       # FIXME: Would be nice to replace hard coded 'mala_conda_cpu' with '${{ env.IMAGE_ID }}' in the
       #        line below, but the 'env' context is not available for the workflow 'image' key, see
