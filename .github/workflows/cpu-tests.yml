@@ -58,6 +58,7 @@ jobs:
           [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal" || true
 
       - name: Tag and push temporary image
+        # only necessary if temporary image is different from latest
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
           # print some environment variables from the github context (for debugging)
@@ -86,7 +87,6 @@ jobs:
 
       - name: Set matrix
         id: set-matrix
-        #run: echo "::set-output name=matrix::[\"latest\",${{ github.run_id }}]"
         run: |
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
@@ -110,8 +110,6 @@ jobs:
     strategy:
       matrix:
        version: ${{fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix)}}
-       #version:
-       #  - ${{ github.run_id }}
     container:
       # FIXME: Would be nice to replace hard coded 'mala_conda_cpu' with '${{ env.IMAGE_ID }}' in the
       #        line below, but the 'env' context is not available for the workflow 'image' key, see
@@ -127,11 +125,12 @@ jobs:
       - name: Show os-release
         run: cat /etc/os-release
 
-  build-latest-docker-image-cpu:
+  push-temp-as-latest-docker-image-cpu:
     needs: cpu-tests
     runs-on: ubuntu-18.04
     # triggered on pushes to main or develop (this includes merge commits of merged PRs)
-    if: github.event_name == 'push'
+    #if: github.event_name == 'push'
+    if: ${{ (github.event_name == 'push') && (env.IMAGE_ID_OLD != env.IMAGE_ID_NEW) }}
     steps:
       - name: Log into registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
