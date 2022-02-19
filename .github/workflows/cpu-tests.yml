@@ -48,6 +48,12 @@ jobs:
         run: |
           docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu #--label "runnumber=${GITHUB_RUN_ID}"
           docker images --no-trunc --digests
+          IMAGE_ID_OLD=$(docker images --filter=reference=$IMAGE_ID --format "{{.ID}}" --no-trunc)
+          IMAGE_ID_NEW=$(docker images --filter=reference=$IMAGE_NAME --format "{{.ID}}" --no-trunc)
+
+          echo "IMAGE_ID_OLD=$IMAGE_ID_OLD"
+          echo "IMAGE_ID_NEW=$IMAGE_ID_NEW"
+
 
       - name: Tag and push temporary image
         run: |
