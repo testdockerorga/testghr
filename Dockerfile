@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3:latest
+FROM continuumio/miniconda3:4.10.3
 
 # Update the image to the latest packages
 RUN apt-get --allow-releaseinfo-change update && apt-get upgrade -y
