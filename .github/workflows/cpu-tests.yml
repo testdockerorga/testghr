@@ -2,11 +2,12 @@ name: CPU tests
 
 on:
   pull_request_target:
-    # triggered on pull requests to main or develop
+    # Trigger on pull requests to main or develop
     branches:
       - main
       - develop
   push:
+    # Trigger on pushes to main or develop and for git tag pushes
     branches:
       - main
       - develop
@@ -17,8 +18,8 @@ env:
   IMAGE_NAME: mala_conda_cpu
 
 jobs:
-  # Build and push temporary Docker image to GitHub's container registry
   build-temp-docker-image-cpu:
+    # Build and push temporary Docker image to GitHub's container registry
     runs-on: ubuntu-18.04
     permissions:
       packages: write
@@ -49,7 +50,7 @@ jobs:
         run: |
           docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu
 
-          # get image IDs (hash of the local image JSON configuration) and check if images are equal
+          # Get image IDs (hash of the local image JSON configuration) and check if images are equal
           IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_ID)
           IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME)
 
@@ -65,12 +66,11 @@ jobs:
             echo "::set-output name=IMAGE_IDS_EQUAL::false"
           fi
 
-
-      - name: Tag and push temporary image
-        # execute step only if temporary image is different from latest
+      - name: Tag temporary image and push it if necessary
+        # Execute step only if temporary image is different from latest
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
-          # print some environment variables from the github context (for debugging)
+          # Print some environment variables from the github context (for debugging)
           echo "github.head_ref=${{ github.head_ref }}"
           echo "github.ref=${{ github.ref }}"
           echo "github.ref_name=${{ github.ref_name }}"
@@ -145,8 +145,7 @@ jobs:
   retag-temp-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
     runs-on: ubuntu-18.04
-    # triggered on pushes to main or develop (this includes merge commits of merged PRs)
-    #if: github.event_name == 'push'
+    # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
     if:  ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.equal == 'false') || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Log into registry
