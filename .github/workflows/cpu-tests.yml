@@ -158,18 +158,27 @@ jobs:
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
-
           docker pull $IMAGE_ID:${{ matrix.version }}
 
       - name: Tag Docker image
         run: |
-          # if image has changed
-          # docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:latest
-          # docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:git-commit-sha
-          #
-          # if startsWith(github.ref, 'refs/tags/'):
+          # on change of Docker image
+          if ${{ needs.build-temp-docker-image-cpu.outputs.equal == 'false' }}; then
+            SHORT_GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")  # commit SHA that triggers workflow
+            GIT_SHA=${GITHUB_REF_NAME}-${SHORT_GIT_HASH}
+            echo "GIT_SHA=$(echo ${GITHUB_REF} | cut -d'/' -f3)-${GITHUB_SHA}"
+            echo "GIT_SHA=$GIT_SHA"
+
+            docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:$GIT_SHA
+            docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:latest
+          fi
+
+          # on push of git tag
           if ${{ startsWith(github.ref, 'refs/tags/') }}; then
-            docker tag $IMAGE_ID:latest $IMAGE_ID:$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
+            GIT_TAG=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
+            echo "GIT_TAG=$GIT_TAG"
+
+            docker tag $IMAGE_ID:latest $IMAGE_ID:$GIT_TAG
           fi
 
       - name: Push Docker image
