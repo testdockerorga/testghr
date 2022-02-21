@@ -169,7 +169,6 @@ jobs:
           if ${{ needs.build-temp-docker-image-cpu.outputs.equal == 'false' }}; then
             SHORT_GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")  # commit SHA that triggers workflow
             GIT_SHA=${GITHUB_REF_NAME}-${SHORT_GIT_HASH}
-            echo "GIT_SHA=$(echo ${GITHUB_REF} | cut -d'/' -f3)-${GITHUB_SHA}"
             echo "GIT_SHA=$GIT_SHA"
 
             docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:$GIT_SHA
