@@ -62,13 +62,13 @@ jobs:
             echo "Image IDs are equal"
             echo "::set-output name=IMAGE_IDS_EQUAL::true"
           else
-            echo "Image IDs are differ"
+            echo "Image IDs differ"
             echo "::set-output name=IMAGE_IDS_EQUAL::false"
           fi
 
           docker images
 
-      - name: Tag temporary if necessary and save it
+      - name: Tag temporary Docker image
         run: |
           # Print some environment variables from the github context (for debugging)
           echo "github.head_ref=${{ github.head_ref }}"
@@ -90,9 +90,9 @@ jobs:
             docker tag $IMAGE_NAME $IMAGE_NAME:$GITHUB_ID
 
             #docker push $IMAGE_ID:$GITHUB_RUN_ID
-            docker save $IMAGE_NAME:$GITHUB_RUN_ID > path/to/artifacts/docker-image.tar
+            docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > path/to/artifacts/docker-image.tar.gz
           else
-            docker save $IMAGE_NAME:latest > path/to/artifacts/docker-image.tar
+            docker save $IMAGE_NAME:latest | gzip > path/to/artifacts/docker-image.tar.gz
           fi
 
       - name: Temporarily save Docker image
@@ -134,20 +134,33 @@ jobs:
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}
-    container:
-      # FIXME: Would be nice to replace hard coded 'mala_conda_cpu' with '${{ env.IMAGE_ID }}' in the
-      #        line below, but the 'env' context is not available for the workflow 'image' key, see
-      #        https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
-      image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu_new:${{ matrix.version }}
-      credentials:
-         username: ${{ github.actor }}
-         password: ${{ secrets.GITHUB_TOKEN }}
+    #container:
+    #  image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu_new:${{ matrix.version }}
+    #  credentials:
+    #     username: ${{ github.actor }}
+    #     password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
 
+      - name: Retrieve saved Docker image
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-artifact
+          path: path/to/artifacts
+
+      - name: Docker load
+        run: |
+          cd path/to/artifacts
+          docker load < docker-image.tar.gz
+          docker images
+
+      - name: Run Docker image
+        run: |
+          docker run -i -d --name mini mala_conda_cpu_new
+
       - name: Show os-release
-        run: cat /etc/os-release
+        run: docker exec mini cat /etc/os-release
 
   retag-temp-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
