@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Log into registry
-        run: echo "${{ secrets.RW_GHCR }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Set environment variables
         run: |
@@ -123,7 +123,7 @@ jobs:
       image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu:${{ matrix.version }}
       credentials:
          username: ${{ github.actor }}
-         password: ${{ secrets.RW_GHCR }}
+         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
@@ -144,7 +144,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Log into registry
-        run: echo "${{ secrets.RW_GHCR }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.GITHUB_TOKN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull temp image from registry
         run: |
