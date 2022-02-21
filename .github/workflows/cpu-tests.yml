@@ -1,7 +1,7 @@
 name: CPU tests
 
 on:
-  pull_request_target:
+  pull_request:
     # Trigger on pull requests to main or develop
     branches:
       - main
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.RW_GHCR }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Set environment variables
         run: |
@@ -78,22 +78,11 @@ jobs:
           echo "github.run_id=${{ github.run_id }}"
 
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD"
+          echo "IMAGE_ID_NEW=$IMAGE_ID_NEW"
 
-          # Use GITHUB_RUN_ID, a unique number for each workflow run within a repository as a temporary Docker tag.
-          # This number does not change for re-runs of the workflow.
-          # An alternative, more expressive value would be a combination of GIT_SHA and GITHUB_REF_NAME:
-          #
-          #   SHORT_GIT_HASH=$(git rev-parse --short "$GITHUB_SHA") # commit SHA that triggered the workflow
-          #   TAG=${GITHUB_REF_NAME}-${SHORT_GIT_HASH}
-          #   echo ::set-output name=docker_tag::$(echo ${GITHUB_REF} | cut -d'/' -f3)-${GITHUB_SHA}
-          #
-          # This variable would have to be made available in context 'env' in order to be reused in subsequent jobs.
-          # The 'env' context is however not available for the 'image' key, see FIXME in 'cpu-tests` job.
-          TAG=$GITHUB_RUN_ID
-          echo "TAG=$TAG"
-
-          docker tag $IMAGE_NAME $IMAGE_ID:$TAG
-          docker push $IMAGE_ID:$TAG
+          # Use GITHUB_RUN_ID, a unique number for each workflow run within a repository as a temporary Docker tag
+          docker tag $IMAGE_NAME $IMAGE_ID:$GITHUB_RUN_ID
+          docker push $IMAGE_ID:$GITHUB_RUN_ID
 
       - name: Set matrix
         id: set-matrix
@@ -134,7 +123,7 @@ jobs:
       image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu:${{ matrix.version }}
       credentials:
          username: ${{ github.actor }}
-         password: ${{ secrets.GITHUB_TOKEN }}
+         password: ${{ secrets.RW_GHCR }}
     steps:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
@@ -155,7 +144,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        run: echo "${{ secrets.RW_GHCR }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull temp image from registry
         run: |
@@ -167,8 +156,7 @@ jobs:
         run: |
           # on change of Docker image
           if ${{ needs.build-temp-docker-image-cpu.outputs.equal == 'false' }}; then
-            SHORT_GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")  # commit SHA that triggers workflow
-            GIT_SHA=${GITHUB_REF_NAME}-${SHORT_GIT_HASH}
+            GIT_SHA=${GITHUB_REF_NAME}-$(git rev-parse --short "$GITHUB_SHA")
             echo "GIT_SHA=$GIT_SHA"
 
             docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:$GIT_SHA
