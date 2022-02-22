@@ -164,17 +164,17 @@ jobs:
           docker images
           docker image tag ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME $IMAGE_NAME:latest
           docker images
-          docker ps
+          docker ps --all --last 10
 
       - name: Run Docker image
         run: |
           # make the github workspace (i.e. checked out mala repository) available inside Docker container
-          docker run -i -d --name mala -v /github/workspace/:/home -w /home mala_conda_cpu_new:${{ matrix.version }}
-#          docker run -i -d --name mala -w /home mala_conda_cpu_new
+          docker run -i -d --rm --name mala-new -v /github/workspace/:/home -w /home mala_conda_cpu_new:${{ matrix.version }}
+          docker ps --all --last 10
 
       - name: Show some Docker container specifics
         run: |
-          docker exec -i mala bash
+          docker exec -i mala-new bash
           ls -lah
           tree
           cat /etc/os-release
