@@ -16,6 +16,7 @@ on:
 
 env:
   IMAGE_NAME: mala_conda_cpu_new
+  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}
 
 jobs:
   build-temp-docker-image-cpu:
@@ -60,15 +61,16 @@ jobs:
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
             echo "Image IDs are equal"
-            echo "::set-output name=IMAGE_IDS_EQUAL::true"
+            echo "::set-output name=IMAGE_IDS_EQUAL::true" # TODO: line possibly obsolete
           else
             echo "Image IDs differ"
-            echo "::set-output name=IMAGE_IDS_EQUAL::false"
+            echo "::set-output name=IMAGE_IDS_EQUAL::false" # TODO: line possibly obsolete
           fi
 
-          docker images
+          docker images # TODO: remove line
 
       - name: Tag temporary Docker image
+        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
           # Print some environment variables from the github context (for debugging)
           echo "github.head_ref=${{ github.head_ref }}"
@@ -76,9 +78,6 @@ jobs:
           echo "github.ref_name=${{ github.ref_name }}"
           echo "github.repository_owner=${{ github.repository_owner }}"
           echo "github.run_id=${{ github.run_id }}"
-
-          echo "IMAGE_ID_OLD=$IMAGE_ID_OLD"
-          echo "IMAGE_ID_NEW=$IMAGE_ID_NEW"
 
           mkdir -p artifacts/docker # TODO: make this path available among jobs
 
@@ -92,10 +91,11 @@ jobs:
             #docker push $IMAGE_ID:$GITHUB_RUN_ID
             docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > artifacts/docker/docker-image.tar.gz
           else
-            docker save $IMAGE_NAME:latest | gzip > artifacts/docker/docker-image.tar.gz
+            docker save $IMAGE_NAME:latest | gzip > artifacts/docker/docker-image.tar.gz # TODO: obsolete
           fi
 
       - name: Temporarily save Docker image
+        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         uses: actions/upload-artifact@v2
         with:
           name: docker-artifact
@@ -114,7 +114,7 @@ jobs:
 
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      equal: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }}
+      equal: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }} # TODO: remove this line
 
   check-output:
     needs: build-temp-docker-image-cpu
@@ -143,17 +143,27 @@ jobs:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
 
-      - name: Retrieve saved Docker image
+      - name: Retrieve saved artifactes
+        if: matrix.version != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: artifacts/docker
 
-      - name: Docker load
+      - name: Load Docker image from artifacts
+        if: matrix.version != 'latest'
         run: |
           cd artifacts/docker
           docker load < docker-image.tar.gz
           docker images # TODO: remove line
+
+      - name: Pull latest image from registry
+        if: matrix.version == 'latest'
+        run: |
+          docker pull ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          docker images
+          docker image tag ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME $IMAGE_NAME:latest
+          docker images
 
       - name: Run Docker image
         run: |
