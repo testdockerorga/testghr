@@ -3,7 +3,7 @@ FROM continuumio/miniconda3:4.10.3
 # Update the image to the latest packages
 RUN apt-get --allow-releaseinfo-change update && apt-get upgrade -y
 
-RUN apt-get install --no-install-recommends -y build-essential libz-dev swig git-lfs cmake
+RUN apt-get install --no-install-recommends -y build-essential libz-dev swig git-lfs cmake tree
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Choose 'cpu' or 'gpu'

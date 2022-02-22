@@ -80,26 +80,26 @@ jobs:
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD"
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW"
 
-          mkdir -p path/to/artifacts
+          mkdir -p artifacts/docker # TODO: make this path available among jobs
 
           # if temporary image is different from latest
           if [[ "$IMAGE_ID_OLD" != "$IMAGE_ID_NEW" ]]
           then
             # Use GITHUB_RUN_ID, a unique number for each workflow run within a repository as a temporary Docker tag
             #docker tag $IMAGE_NAME $IMAGE_ID:$GITHUB_RUN_ID
-            docker tag $IMAGE_NAME $IMAGE_NAME:$GITHUB_ID
+            docker tag $IMAGE_NAME $IMAGE_NAME:$GITHUB_RUN_ID
 
             #docker push $IMAGE_ID:$GITHUB_RUN_ID
-            docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > path/to/artifacts/docker-image.tar.gz
+            docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > artifacts/docker/docker-image.tar.gz
           else
-            docker save $IMAGE_NAME:latest | gzip > path/to/artifacts/docker-image.tar.gz
+            docker save $IMAGE_NAME:latest | gzip > artifacts/docker/docker-image.tar.gz
           fi
 
       - name: Temporarily save Docker image
         uses: actions/upload-artifact@v2
         with:
           name: docker-artifact
-          path: path/to/artifacts
+          path: artifacts/docker
           retention-days: 1
 
       - name: Set matrix
@@ -147,29 +147,26 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
-          path: path/to/artifacts
+          path: artifacts/docker
 
       - name: Docker load
         run: |
-          cd path/to/artifacts
+          cd artifacts/docker
           docker load < docker-image.tar.gz
-          docker images
+          docker images # TODO: remove line
 
       - name: Run Docker image
         run: |
-#          docker run -i -d --name mala -v /github/workspace/:/home -w /home mala_conda_cpu_new
-          docker run -i -d --name mala -w /home mala_conda_cpu_new
+          # make the github workspace (i.e. checked out mala repository) available inside Docker container
+          docker run -i -d --name mala -v /github/workspace/:/home -w /home mala_conda_cpu_new:${{ matrix.version }}
+#          docker run -i -d --name mala -w /home mala_conda_cpu_new
 
-      - name: Show os-release
+      - name: Show some Docker container specifics
         run: |
           docker exec -i mala bash
           ls -lah
+          tree
           cat /etc/os-release
-          #docker exec mala cat /etc/os-release
-          #docker exec -t mala ls
-          #docker exec mala pwd
-          #docker exec mala which python
-          #docker exec mala sh -c "ls"
 
   retag-temp-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
