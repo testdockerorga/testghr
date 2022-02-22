@@ -157,10 +157,19 @@ jobs:
 
       - name: Run Docker image
         run: |
-          docker run -i -d --name mini mala_conda_cpu_new
+#          docker run -i -d --name mala -v /github/workspace/:/home -w /home mala_conda_cpu_new
+          docker run -i -d --name mala -w /home mala_conda_cpu_new
 
       - name: Show os-release
-        run: docker exec mini cat /etc/os-release
+        run: |
+          docker exec -i mala bash
+          ls -lah
+          cat /etc/os-release
+          #docker exec mala cat /etc/os-release
+          #docker exec -t mala ls
+          #docker exec mala pwd
+          #docker exec mala which python
+          #docker exec mala sh -c "ls"
 
   retag-temp-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
