@@ -69,7 +69,7 @@ jobs:
 
           docker images # TODO: remove line
 
-      - name: Tag temporary Docker image
+      - name: Tag temporary built Docker image
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
           # Print some environment variables from the github context (for debugging)
@@ -81,12 +81,12 @@ jobs:
 
           mkdir -p artifacts/docker # TODO: make this path available among jobs
 
-          # if temporary image is different from latest
+          # if temporary image is different from latest on ghcr.io
           if [[ "$IMAGE_ID_OLD" != "$IMAGE_ID_NEW" ]]
           then
             # Use GITHUB_RUN_ID, a unique number for each workflow run within a repository as a temporary Docker tag
             #docker tag $IMAGE_NAME $IMAGE_ID:$GITHUB_RUN_ID
-            docker tag $IMAGE_NAME $IMAGE_NAME:$GITHUB_RUN_ID
+            docker tag $IMAGE_NAME:latest $IMAGE_NAME:$GITHUB_RUN_ID
 
             #docker push $IMAGE_ID:$GITHUB_RUN_ID
             docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > artifacts/docker/docker-image.tar.gz
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
-       version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}
+       version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
     #container:
     #  image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu_new:${{ matrix.version }}
     #  credentials:
@@ -176,10 +176,10 @@ jobs:
         run: |
           docker exec -i mala bash
           ls -lah
-          tree /usr/bin
+          tree
           which tree
           echo $SHELL
-          python -c "print('cwfewefergerggeg')"
+          python -c "print('test test test')"
           cat /etc/os-release
 
   retag-docker-image-cpu:
@@ -210,12 +210,13 @@ jobs:
           docker load < docker-image.tar.gz
 
       - name: Log into registry # TODO: Is it necessary to repeat this step here?
-        if: matrix.version == 'latest'
+        #if: matrix.version == 'latest'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull latest image from registry
         if: matrix.version == 'latest'
         run: |
+          # TODO: remove IMAGE_ID ...
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
           docker pull $IMAGE_ID:${{ matrix.version }}
@@ -223,12 +224,12 @@ jobs:
       - name: Tag Docker image
         run: |
           # on change of Docker image
-          if ${{ needs.build-temp-docker-image-cpu.outputs.equal == 'false' }}; then
+          if ${{ matrix.version != 'latest' }}; then
             GIT_SHA=${GITHUB_REF_NAME}-$(git rev-parse --short "$GITHUB_SHA")
             echo "GIT_SHA=$GIT_SHA"
 
-            docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:$GIT_SHA
-            docker tag $IMAGE_ID:$GITHUB_RUN_ID $IMAGE_ID:latest
+            docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:$GIT_SHA
+            docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:latest
           fi
 
           # on push of git tag
@@ -236,11 +237,11 @@ jobs:
             GIT_TAG=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
             echo "GIT_TAG=$GIT_TAG"
 
-            docker tag $IMAGE_ID:latest $IMAGE_ID:$GIT_TAG
+            docker tag $IMAGE_NAME:latest $IMAGE_REPO/$IMAGE_NAME:$GIT_TAG
           fi
 
       - name: Push Docker image
-        run: docker push $IMAGE_ID --all-tags
+        run: docker push $IMAGE_REPO/$IMAGE_NAME --all-tags
 
   cleanup:
     # Remove intermediate Docker image from ghcr.io
