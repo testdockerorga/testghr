@@ -16,8 +16,9 @@ on:
 
 env:
   IMAGE_NAME: mala_conda_cpu_new
+  IMAGE_REGISTRY: ghcr.io
 #  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}
-  IMAGE_REPO: ghcr.io/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
+  IMAGE_REPO: "ghcr.io/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')"
 
 jobs:
   build-temp-docker-image-cpu:
@@ -32,14 +33,17 @@ jobs:
 
       - name: Set environment variables # TODO: this step is obsolete
         run: |
+          IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
 
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
           echo "IMAGE_ID=$IMAGE_ID"
+          echo "IMAGE_REPO=$IMAGE_REPO"
 
           # Create environment variable to which any subsequent steps in a workflow job have access
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
+          echo "IAMGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
 
       - name: Pull latest image from registry
         run: docker pull $IMAGE_ID || true
