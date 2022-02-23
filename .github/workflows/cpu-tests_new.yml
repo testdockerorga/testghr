@@ -17,8 +17,6 @@ on:
 env:
   IMAGE_NAME: mala_conda_cpu_new
   IMAGE_REGISTRY: ghcr.io
-#  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}
-  IMAGE_REPO: "ghcr.io/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')"
 
 jobs:
   build-temp-docker-image-cpu:
@@ -31,27 +29,22 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Set environment variables # TODO: this step is obsolete
+      - name: Set environment variables
         run: |
+          # Change all uppercase letters to lowercase
           IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
-
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          echo "IMAGE_ID=$IMAGE_ID"
-          echo "IMAGE_REPO=$IMAGE_REPO"
 
           # Create environment variable to which any subsequent steps in a workflow job have access
-          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
-          echo "IAMGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_REPO=$IMAGE_REPO"
 
       - name: Pull latest image from registry
-        run: docker pull $IMAGE_ID || true
+        run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary image
         id: build-temp
         run: |
-          docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_ID --build-arg DEVICE=cpu
+          docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_REPO/$IMAGE_NAME:latest --build-arg DEVICE=cpu
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
           IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_ID)
@@ -74,7 +67,7 @@ jobs:
       - name: Tag temporary built Docker image
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
-          # Print some environment variables from the github context (for debugging)
+          echo "::debug::Print some environment variables from the github context"
           echo "github.head_ref=${{ github.head_ref }}"
           echo "github.ref=${{ github.ref }}"
           echo "github.ref_name=${{ github.ref_name }}"
@@ -143,6 +136,15 @@ jobs:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
     steps:
+      - name: Set environment variables
+        run: |
+          # Change all uppercase letters to lowercase
+          IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
+
+          # Create environment variable to which any subsequent steps in a workflow job have access
+          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_REPO=$IMAGE_REPO"
+
       - name: Check out repository (mala)
         uses: actions/checkout@v2
 
@@ -198,7 +200,16 @@ jobs:
        && contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true
       ) || startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Check out repository
+      - name: Set environment variables
+        run: |
+          # Change all uppercase letters to lowercase
+          IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
+
+          # Create environment variable to which any subsequent steps in a workflow job have access
+          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_REPO=$IMAGE_REPO"
+
+      - name: Check out repository # TODO: obsolete?
         uses: actions/checkout@v2
 
       - name: Retrieve saved artifactes
@@ -217,10 +228,7 @@ jobs:
       - name: Pull latest image from registry
         if: matrix.version == 'latest'
         run: |
-          # TODO: remove IMAGE_ID ...
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
-          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
-          docker pull $IMAGE_ID:${{ matrix.version }}
+          docker pull $IMAGE_REPO/$IMAGE_NAME:latest
 
       - name: Tag Docker image
         run: |
