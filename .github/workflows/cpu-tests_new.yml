@@ -30,13 +30,17 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set environment variables
+        id: set-env
         run: |
           # Change all uppercase letters to lowercase
           IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
 
-          # Create environment variable to which any subsequent steps in a workflow job have access
+          # Create environment variable to which any subsequent steps inside this workflow's job have access
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
+
+          # Create output variable which can be used globally among jobs
+          echo "::set-output name=IMAGE_REPO::$IMAGE_REPO"
 
       - name: Pull latest image from registry
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
@@ -47,27 +51,20 @@ jobs:
           docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_REPO/$IMAGE_NAME:latest --build-arg DEVICE=cpu
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
-          IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_ID)
+          IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_REPO/$IMAGE_NAME)
           IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME)
 
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
 
-          if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
-          then
-            echo "Image IDs are equal"
-            echo "::set-output name=IMAGE_IDS_EQUAL::true" # TODO: line possibly obsolete
-          else
-            echo "Image IDs differ"
-            echo "::set-output name=IMAGE_IDS_EQUAL::false" # TODO: line possibly obsolete
-          fi
+          [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal" || echo "Image IDs differ"
 
           docker images # TODO: remove line
 
       - name: Tag temporary built Docker image
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
-          echo "::debug::Print some environment variables from the github context"
+          # Print some environment variables from the github context (for debugging)
           echo "github.head_ref=${{ github.head_ref }}"
           echo "github.ref=${{ github.ref }}"
           echo "github.ref_name=${{ github.ref_name }}"
@@ -108,16 +105,19 @@ jobs:
           fi
 
     outputs:
+      image-repo: ${{ steps.set-env.outputs.IMAGE_REPO }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       equal: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }} # TODO: remove this line
 
   check-output:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
+    env:
+      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
     if: contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') == true
     steps:
       - run: |
-          echo $GITHUB_REPOSITORY_OWNER
+          echo $GITHUB_REPOSITORY_OWNER $IMAGE_REPO
           echo "matrix=${{needs.build-temp-docker-image-cpu.outputs.matrix}}"
           echo "equal=${{needs.build-temp-docker-image-cpu.outputs.equal}}"
           echo "${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}"
@@ -132,19 +132,12 @@ jobs:
   cpu-tests:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
+    env:
+      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
     steps:
-      - name: Set environment variables
-        run: |
-          # Change all uppercase letters to lowercase
-          IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
-
-          # Create environment variable to which any subsequent steps in a workflow job have access
-          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
-          echo "IMAGE_REPO=$IMAGE_REPO"
-
       - name: Check out repository (mala)
         uses: actions/checkout@v2
 
@@ -190,25 +183,18 @@ jobs:
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
     runs-on: ubuntu-18.04
-    # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
+    env:
+      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}
+    # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
     if: |
       (
        (contains(github.ref_name, 'develop') || contains(github.ref_name, 'main'))
        && contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true
       ) || startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Set environment variables
-        run: |
-          # Change all uppercase letters to lowercase
-          IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
-
-          # Create environment variable to which any subsequent steps in a workflow job have access
-          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
-          echo "IMAGE_REPO=$IMAGE_REPO"
-
       - name: Check out repository # TODO: obsolete?
         uses: actions/checkout@v2
 
