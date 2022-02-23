@@ -16,8 +16,8 @@ on:
 
 env:
   IMAGE_NAME: mala_conda_cpu_new
-  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}
- # IMAGE_REPO: ghcr.io/$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+#  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}
+  IMAGE_REPO: ghcr.io/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
 
 jobs:
   build-temp-docker-image-cpu:
