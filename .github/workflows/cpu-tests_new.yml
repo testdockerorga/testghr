@@ -17,6 +17,7 @@ on:
 env:
   IMAGE_NAME: mala_conda_cpu_new
   IMAGE_REGISTRY: ghcr.io
+  DOCKER_ARTIFACT_PATH: artifacts/docker
 
 jobs:
   build-temp-docker-image-cpu:
@@ -71,7 +72,7 @@ jobs:
           echo "github.repository_owner=${{ github.repository_owner }}"
           echo "github.run_id=${{ github.run_id }}"
 
-          mkdir -p artifacts/docker # TODO: make this path available among jobs
+          mkdir -p $DOCKER_ARTIFACT_PATH
 
           # if temporary image is different from latest on ghcr.io
           if [[ "$IMAGE_ID_OLD" != "$IMAGE_ID_NEW" ]]
@@ -81,9 +82,9 @@ jobs:
             docker tag $IMAGE_NAME:latest $IMAGE_NAME:$GITHUB_RUN_ID
 
             #docker push $IMAGE_ID:$GITHUB_RUN_ID
-            docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > artifacts/docker/docker-image.tar.gz
+            docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
           else
-            docker save $IMAGE_NAME:latest | gzip > artifacts/docker/docker-image.tar.gz # TODO: obsolete
+            docker save $IMAGE_NAME:latest | gzip > $DOCKER_ARTIFACT_PATH/docker-image.tar.gz # TODO: obsolete
           fi
 
       - name: Temporarily save Docker image
@@ -91,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: docker-artifact
-          path: artifacts/docker
+          path: $DOCKER_ARTIFACT_PATH
           retention-days: 1
 
       - name: Set matrix
@@ -107,7 +108,6 @@ jobs:
     outputs:
       image-repo: ${{ steps.set-env.outputs.IMAGE_REPO }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      equal: ${{ steps.build-temp.outputs.IMAGE_IDS_EQUAL }} # TODO: remove this line
 
   check-output:
     needs: build-temp-docker-image-cpu
@@ -146,12 +146,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
-          path: artifacts/docker
+          path: $DOCKER_ARTIFACT_PATH
 
       - name: Load Docker image from artifacts
         if: matrix.version != 'latest'
         run: |
-          cd artifacts/docker
+          cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
           docker images # TODO: remove line
 
