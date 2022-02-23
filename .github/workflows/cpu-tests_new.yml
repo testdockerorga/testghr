@@ -17,6 +17,7 @@ on:
 env:
   IMAGE_NAME: mala_conda_cpu_new
   IMAGE_REPO: ghcr.io/${{ github.repository_owner }}
+ # IMAGE_REPO: ghcr.io/$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
 jobs:
   build-temp-docker-image-cpu:
@@ -116,9 +117,10 @@ jobs:
   check-output:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
-    if: contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true
+    if: contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') == true
     steps:
       - run: |
+          echo $GITHUB_REPOSITORY_OWNER
           echo "matrix=${{needs.build-temp-docker-image-cpu.outputs.matrix}}"
           echo "equal=${{needs.build-temp-docker-image-cpu.outputs.equal}}"
           echo "${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}"
@@ -166,12 +168,12 @@ jobs:
       - name: Run Docker image
         run: |
           # make the github workspace (i.e. checked out mala repository) available inside Docker container
-          docker run -i -d --rm --name mala -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
+          docker run -i -d --rm --name mala-cpu -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
           docker ps --all --last 10
 
       - name: Show some Docker container specifics
         run: |
-          docker exec -i mala bash
+          docker exec -i mala-cpu bash
           ls -lah
           tree
           which tree
@@ -189,7 +191,7 @@ jobs:
     if: |
       (
        (contains(github.ref_name, 'develop') || contains(github.ref_name, 'main'))
-       && contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true  # matrix.version != 'latest'
+       && contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true
       ) || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Check out repository
