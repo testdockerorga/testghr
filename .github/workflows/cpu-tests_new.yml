@@ -29,10 +29,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Set environment variables
+      - name: Set environment variables # TODO: this step is obsolete
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
 
@@ -119,14 +116,19 @@ jobs:
   check-output:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
+    if: contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true
     steps:
       - run: |
           echo "matrix=${{needs.build-temp-docker-image-cpu.outputs.matrix}}"
           echo "equal=${{needs.build-temp-docker-image-cpu.outputs.equal}}"
+          echo "${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}"
+          echo "${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) == 'latest' }}"
           [[ ${{ (github.event_name == 'push') }} ]] && echo "TRUE"  || true
           [[ ${{ (needs.build-temp-docker-image-cpu.outputs.equal == 'false') }} ]] && echo "TRUE" || true
           [[ ${{ (github.event_name == 'push') && (needs.build-temp-docker-image-cpu.outputs.equal == 'false') }} ]] && echo "TRUE" || true
           [[ ${{ (contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) }} ]] && echo "contain TRUE" || true
+          [[ ${{ needs.build-temp-docker-image-cpu.outputs.matrix }} == '[latest]' ]] && echo "A" || true
+          [[ ${{ needs.build-temp-docker-image-cpu.outputs.matrix }} != '["latest"]' ]] && echo "B" || true
 
   cpu-tests:
     needs: build-temp-docker-image-cpu
@@ -134,11 +136,6 @@ jobs:
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
-    #container:
-    #  image: ghcr.io/${{ github.repository_owner }}/mala_conda_cpu_new:${{ matrix.version }}
-    #  credentials:
-    #     username: ${{ github.actor }}
-    #     password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
@@ -189,9 +186,11 @@ jobs:
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}
-    if: >
-     ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.matrix != '[latest]'
-     ) || startsWith(github.ref, 'refs/tags/')
+    if: |
+      (
+       (contains(github.ref_name, 'develop') || contains(github.ref_name, 'main'))
+       && contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') != true  # matrix.version != 'latest'
+      ) || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
@@ -208,10 +207,6 @@ jobs:
         run: |
           cd artifacts/docker
           docker load < docker-image.tar.gz
-
-      - name: Log into registry # TODO: Is it necessary to repeat this step here?
-        #if: matrix.version == 'latest'
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Pull latest image from registry
         if: matrix.version == 'latest'
@@ -239,6 +234,10 @@ jobs:
 
             docker tag $IMAGE_NAME:latest $IMAGE_REPO/$IMAGE_NAME:$GIT_TAG
           fi
+
+      - name: Log into registry
+        # authentication only required for pushing images
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push Docker image
         run: docker push $IMAGE_REPO/$IMAGE_NAME --all-tags
