@@ -169,12 +169,12 @@ jobs:
       - name: Run Docker image
         run: |
           # make the github workspace (i.e. checked out mala repository) available inside Docker container
-          docker run -i -d --rm --name mala-new -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
+          docker run -i -d --rm --name mala -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
           docker ps --all --last 10
 
       - name: Show some Docker container specifics
         run: |
-          docker exec -i mala-new bash
+          docker exec -i mala bash
           ls -lah
           tree /usr/bin
           which tree
@@ -182,22 +182,39 @@ jobs:
           python -c "print('cwfewefergerggeg')"
           cat /etc/os-release
 
-  retag-temp-docker-image-cpu:
+  retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
     runs-on: ubuntu-18.04
     # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
-    if:  ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.equal == 'false') || startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}
+    if: >
+     ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.matrix != '[latest]'
+     ) || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Log into registry
+      - name: Retrieve saved artifactes
+        if: matrix.version != 'latest'
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-artifact
+          path: artifacts/docker
+
+      - name: Load Docker image from artifacts
+        if: matrix.version != 'latest'
+        run: |
+          cd artifacts/docker
+          docker load < docker-image.tar.gz
+
+      - name: Log into registry # TODO: Is it necessary to repeat this step here?
+        if: matrix.version == 'latest'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull temp image from registry
+      - name: Pull latest image from registry
+        if: matrix.version == 'latest'
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
           echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
