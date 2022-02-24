@@ -146,6 +146,8 @@ jobs:
     steps:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
+        with:
+          repository: mala-project/mala
 
       - name: "Prepare environment: Retrieve saved artifactes"
         if: matrix.version != 'latest'
