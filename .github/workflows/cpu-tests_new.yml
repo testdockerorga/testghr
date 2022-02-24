@@ -1,4 +1,4 @@
-name: CPU tests new
+name: CPU tests dev
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ on:
       - v*
 
 env:
-  IMAGE_NAME: mala_conda_cpu_new
+  IMAGE_NAME: mala_conda_cpu_dev
   IMAGE_REGISTRY: ghcr.io
   DOCKER_ARTIFACT_PATH: artifacts/docker
 
