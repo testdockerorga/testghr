@@ -187,6 +187,19 @@ jobs:
           # `requirements.txt` and/or extra dependencies are missing in the Docker Conda environment
           diff env_1.yml env_2.yml
 
+      - name: Check out repository (data)
+        uses: actions/checkout@v2
+        with:
+          repository: mala-project/test-data
+          path: mala_data
+          ref: v1.3.0
+          lfs: false
+
+      - name: Test mala
+        # Exec all commands inside the mala-cpu container
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --disable-warnings
+
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
     runs-on: ubuntu-18.04
