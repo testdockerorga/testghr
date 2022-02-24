@@ -121,11 +121,6 @@ jobs:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
     steps:
-      - name: Check out repository (mala)
-        uses: actions/checkout@v2
-        with:
-          repository: mala-project/mala
-
       - name: "Prepare environment: Retrieve saved artifactes"
         if: matrix.version != 'latest'
         uses: actions/download-artifact@v2
@@ -153,6 +148,11 @@ jobs:
           docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:${{ matrix.version }}
           docker ps --all
 
+      - name: Check out repository (mala)
+        uses: actions/checkout@v2
+        with:
+          repository: mala-project/mala
+
       - name: Show some Docker container specifics
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
@@ -161,6 +161,20 @@ jobs:
           conda env list
           pwd
           ls -lah
+
+      - name: Install mala package
+        # Exec all commands inside the mala-cpu container
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        run: |
+          # epxort Docker image Conda environment for a later comparison
+          conda env export -n mala-cpu > env_1.yml
+
+          # install mala package
+          pip --no-cache-dir install -e .
+
+          # install extra dependencies
+          pip install oapackage
+          pip install pytest
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
