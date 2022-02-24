@@ -23,11 +23,11 @@ jobs:
   build-temp-docker-image-cpu:
     # Build and push temporary Docker image to GitHub's container registry
     runs-on: ubuntu-18.04
-    permissions:
+    permissions:   # TODO: not needed?!
       packages: write
       contents: read
     steps:
-      - name: Check out repository
+      - name: Check out repository  # TODO: not needed in this job?!
         uses: actions/checkout@v2
 
       - name: Set environment variables
@@ -141,21 +141,21 @@ jobs:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
 
-      - name: Retrieve saved artifactes
+      - name: "Prepare environment: Retrieve saved artifactes"
         if: matrix.version != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: $DOCKER_ARTIFACT_PATH
 
-      - name: Load Docker image from artifacts
+      - name: "Prepare environment: Load Docker image from artifacts"
         if: matrix.version != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
           docker images # TODO: remove line
 
-      - name: Pull latest image from registry
+      - name: "Prepare environment: Pull latest image from registry"
         if: matrix.version == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
@@ -164,7 +164,7 @@ jobs:
           #docker images
           #docker ps --all --last 10
 
-      - name: Run Docker image
+      - name: "Prepare environment: Run Docker container"
         run: |
           # make the github workspace (i.e. checked out mala repository) available inside Docker container
           docker run -i -d --rm --name mala-cpu -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
