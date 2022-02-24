@@ -172,6 +172,7 @@ jobs:
 
       - name: Show some Docker container specifics
         #shell: 'script -q -e -c "bash {0}"'
+        shell: bash -i {0}
         run: |
           #docker exec -i -t mala-cpu bash
           #perl -E 'say "Is STDOUT a TTY?: ", -t STDOUT ? "yes" : "no"'
