@@ -1,4 +1,4 @@
-name: CPU tests new
+name: CPU tests dev
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ on:
       - v*
 
 env:
-  IMAGE_NAME: mala_conda_cpu_new
+  IMAGE_NAME: mala_conda_cpu_dev
   IMAGE_REGISTRY: ghcr.io
   DOCKER_ARTIFACT_PATH: artifacts/docker
 
@@ -82,7 +82,10 @@ jobs:
             docker tag $IMAGE_NAME:latest $IMAGE_NAME:$GITHUB_RUN_ID
 
             #docker push $IMAGE_ID:$GITHUB_RUN_ID
+            echo $DOCKER_ARTIFACT_PATH
             docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
+            pwd
+            tree
           else
             docker save $IMAGE_NAME:latest | gzip > $DOCKER_ARTIFACT_PATH/docker-image.tar.gz # TODO: obsolete
           fi
@@ -92,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: docker-artifact
-          path: $DOCKER_ARTIFACT_PATH
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
           retention-days: 1
 
       - name: Set matrix
@@ -149,7 +152,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
-          path: $DOCKER_ARTIFACT_PATH
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
 
       - name: "Prepare environment: Load Docker image from artifacts"
         if: matrix.version != 'latest'
@@ -203,12 +206,12 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
-          path: artifacts/docker
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
 
       - name: Load Docker image from artifacts
         if: matrix.version != 'latest'
         run: |
-          cd artifacts/docker
+          cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
 
       - name: Pull latest image from registry
