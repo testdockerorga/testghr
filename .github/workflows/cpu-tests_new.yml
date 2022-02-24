@@ -117,6 +117,7 @@ jobs:
     if: contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') == true
     steps:
       - run: |
+          pwd
           echo "github workspace: ${{ github.workspace }}"
           echo "runner workspace: ${{ runner.workspace }}"
           echo $GITHUB_REPOSITORY_OWNER $IMAGE_REPO
