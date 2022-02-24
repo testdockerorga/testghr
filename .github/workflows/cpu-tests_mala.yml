@@ -176,6 +176,17 @@ jobs:
           pip install oapackage
           pip install pytest
 
+      - name: Check if Conda environment meets the specified requirements
+        # Exec all commands inside the mala-cpu container
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        run: |
+          # export Conda environment _with_ mala package installed in it (and extra dependencies)
+          conda env export -n mala-cpu > env_2.yml
+
+          # if comparison fails, `install/mala_cpu_[base]_environment.yml` needs to be aligned with
+          # `requirements.txt` and/or extra dependencies are missing in the Docker Conda environment
+          diff env_1.yml env_2.yml
+
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
     runs-on: ubuntu-18.04
