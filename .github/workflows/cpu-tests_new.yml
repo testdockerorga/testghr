@@ -166,26 +166,18 @@ jobs:
 
       - name: "Prepare environment: Run Docker container"
         run: |
-          # make the github workspace (i.e. checked out mala repository) available inside Docker container
-          docker run -i -d --rm --name mala-cpu -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
+          # Make the github workspace (i.e. checked out mala repository) available inside Docker container
+          docker run -d --rm --name mala-cpu -v /github/workspace/:/home -w /home $IMAGE_NAME:${{ matrix.version }}
           docker ps --all --last 10
 
       - name: Show some Docker container specifics
-        #shell: 'script -q -e -c "bash {0}"'
-        shell: bash -i {0}
+        # Exec all commands inside the mala-cpu container
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         run: |
-          #docker exec -i -t mala-cpu bash
-          #perl -E 'say "Is STDOUT a TTY?: ", -t STDOUT ? "yes" : "no"'
-          #alias ll="ls -la"
-          #ll
-          [[ $- == *i* ]] && echo 'Interactive' || echo 'Not interactive'
+          cat /etc/os-release
+          conda env list
           pwd
           ls -lah
-          docker exec mala-cpu bash -c 'ls -lah'
-          docker exec mala-cpu bash -c 'type -a python'
-          docker exec mala-cpu python -c 'import sys; print("Python version"); print (sys.version)'
-          docker exec mala-cpu bash -c 'cat /etc/os-release'
-          docker exec mala-cpu bash -c 'conda env list'
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
