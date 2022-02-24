@@ -1,4 +1,4 @@
-name: CPU tests (dev)
+name: CPU tests (mala)
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ on:
       - v*
 
 env:
-  IMAGE_NAME: mala_conda_cpu_dev
+  IMAGE_NAME: mala_conda_cpu
   IMAGE_REGISTRY: ghcr.io
   DOCKER_ARTIFACT_PATH: artifacts/docker
 
@@ -49,7 +49,7 @@ jobs:
       - name: Build temporary image
         id: build-temp
         run: |
-          docker build . --file Dockerfile --tag $IMAGE_NAME --cache-from=$IMAGE_REPO/$IMAGE_NAME:latest --build-arg DEVICE=cpu
+          docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$IMAGE_REPO/$IMAGE_NAME:latest --build-arg DEVICE=cpu
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
           IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_REPO/$IMAGE_NAME)
