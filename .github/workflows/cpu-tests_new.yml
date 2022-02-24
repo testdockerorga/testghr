@@ -171,14 +171,20 @@ jobs:
           docker ps --all --last 10
 
       - name: Show some Docker container specifics
+        #shell: 'script -q -e -c "bash {0}"'
         run: |
-          docker exec -i mala-cpu bash
+          #docker exec -i -t mala-cpu bash
+          #perl -E 'say "Is STDOUT a TTY?: ", -t STDOUT ? "yes" : "no"'
+          #alias ll="ls -la"
+          #ll
+          [[ $- == *i* ]] && echo 'Interactive' || echo 'Not interactive'
+          pwd
           ls -lah
-          tree
-          which tree
-          echo $SHELL
-          python -c "print('test test test')"
-          cat /etc/os-release
+          docker exec mala-cpu bash -c 'ls -lah'
+          docker exec mala-cpu bash -c 'type -a python'
+          docker exec mala-cpu python -c 'import sys; print("Python version"); print (sys.version)'
+          docker exec mala-cpu bash -c 'cat /etc/os-release'
+          docker exec mala-cpu bash -c 'conda env list'
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
