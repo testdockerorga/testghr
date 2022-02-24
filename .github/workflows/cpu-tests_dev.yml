@@ -1,4 +1,4 @@
-name: CPU tests dev
+name: CPU tests (dev)
 
 on:
   pull_request:
