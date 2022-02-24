@@ -117,6 +117,8 @@ jobs:
     if: contains(needs.build-temp-docker-image-cpu.outputs.matrix, 'latest') == true
     steps:
       - run: |
+          echo "github workspace: ${{ github.workspace }}"
+          echo "runner workspace: ${{ runner.workspace }}"
           echo $GITHUB_REPOSITORY_OWNER $IMAGE_REPO
           echo "matrix=${{needs.build-temp-docker-image-cpu.outputs.matrix}}"
           echo "equal=${{needs.build-temp-docker-image-cpu.outputs.equal}}"
