@@ -252,7 +252,7 @@ jobs:
             GIT_TAG=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
             echo "GIT_TAG=$GIT_TAG"
 
-            docker tag $IMAGE_NAME:latest $IMAGE_REPO/$IMAGE_NAME:$GIT_TAG
+            docker tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_REPO/$IMAGE_NAME:$GIT_TAG
           fi
 
       - name: Log into registry
