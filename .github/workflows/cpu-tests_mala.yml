@@ -165,6 +165,7 @@ jobs:
       - name: Install mala package
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        if: false
         run: |
           # epxort Docker image Conda environment for a later comparison
           conda env export -n mala-cpu > env_1.yml
@@ -179,6 +180,7 @@ jobs:
       - name: Check if Conda environment meets the specified requirements
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        if: false
         run: |
           # export Conda environment _with_ mala package installed in it (and extra dependencies)
           conda env export -n mala-cpu > env_2.yml
@@ -196,6 +198,7 @@ jobs:
           lfs: false
 
       - name: Test mala
+        if: false
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         run: MALA_DATA_REPO=$(pwd)/mala_data pytest --disable-warnings
