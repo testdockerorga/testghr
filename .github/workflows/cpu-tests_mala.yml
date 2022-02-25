@@ -37,7 +37,7 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
-      - name: Pull latest image from registry
+      - name: Pull latest image from container registry
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary image
@@ -120,7 +120,7 @@ jobs:
           cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
 
-      - name: "Prepare environment: Pull latest image from registry"
+      - name: "Prepare environment: Pull latest image from container registry"
         if: matrix.version == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
@@ -217,7 +217,7 @@ jobs:
           cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
 
-      - name: Pull latest image from registry
+      - name: Pull latest image from container registry
         if: matrix.version == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
