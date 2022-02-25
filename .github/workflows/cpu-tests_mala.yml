@@ -37,9 +37,6 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
-          # Create output variable which can be used globally among all jobs
-          echo "::set-output name=IMAGE_REPO::$IMAGE_REPO"
-
       - name: Pull latest image from registry
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
@@ -93,7 +90,8 @@ jobs:
           fi
 
     outputs:
-      image-repo: ${{ steps.set-env.outputs.IMAGE_REPO }} # TODO: Can't we just write 'image-repo: $IMAGE_REPO' here?
+      # Make variables available to all downstream jobs that depend on this job
+      image-repo: ${{ env.IMAGE_REPO }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     # docker-tag: ${{ steps....outputs.DOCKER_TAG }}
 
