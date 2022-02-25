@@ -85,21 +85,24 @@ jobs:
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
             echo "::set-output name=matrix::[\"latest\"]"
+            echo "DOCKER_TAG=latest" >> $GITHUB_ENV
           else
             echo "::set-output name=matrix::[\"${{ github.run_id }}\"]"
+            echo "DOCKER_TAG=$GITHUB_RUN_ID" >> $GITHUB_ENV
           fi
 
     outputs:
       # Make variables available to all downstream jobs that depend on this job
       image-repo: ${{ env.IMAGE_REPO }}
+      docker-tag: ${{ env.DOCKER_TAG }}
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-    # docker-tag: ${{ steps....outputs.DOCKER_TAG }}
 
   cpu-tests:
     needs: build-temp-docker-image-cpu
     runs-on: ubuntu-18.04
     env:
       IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
+      DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
@@ -190,6 +193,7 @@ jobs:
       packages: write
     env:
       IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
+      DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
     strategy:
       matrix:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }}
