@@ -237,8 +237,8 @@ jobs:
             docker tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_REPO/$IMAGE_NAME:$GIT_TAG
           fi
 
-      - name: Log into registry
-        # Authentication only required for pushing images
+      - name: Log into container registry
+        # Authentication required for pushing images
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push Docker image
