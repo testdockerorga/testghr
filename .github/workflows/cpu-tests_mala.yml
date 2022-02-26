@@ -36,11 +36,31 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
-      - name: Check is artifacts exist
-        run: tree
+      - name: Retrieve saved artifacts from previous workflow runs if any available
+        uses: dawidd6/action-download-artifact@v2
+        id: xxx
+        with:
+          workflow: cpu-tests_mala.yml # ${{ github.event.workflow_run.workflow_id }}
+          run_id: ${{ github.run.id }}
+          name: docker-artifact
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+        continue-on-error: true
+
+      - name: Check artifact existence
+        id: check_files
+        run: |
+          if [[ -f $DOCKER_ARTIFACT_PATH/docker-image.tar.gz ]]; then
+            echo '::set-output name=artifacts-exists::true'
+          else
+            echo '::set-output name=artifacts-exists::false'
+          fi
 
       - name: Pull latest image from container registry
-        run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
+        #if: steps.check_files.outputs.artifacts_exists == 'true'
+        run: |
+          echo "${{ steps.check_files.outputs }}"
+          echo "${{ steps.xxx.outputs }}}⅛
+          docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary image
         run: |
@@ -75,7 +95,8 @@ jobs:
             docker tag $IMAGE_NAME:latest $IMAGE_NAME:$GITHUB_RUN_ID
 
             # Save Docker image locally
-            docker save $IMAGE_NAME:$GITHUB_RUN_ID | gzip > $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
+            docker save $IMAGE_NAME:$GITHUB_RUN_ID -o $DOCKER_ARTIFACT_PATH/docker-image.tar
+            gzip $DOCKER_ARTIFACT_PATH/docker-image.tar
           fi
 
       - name: Upload saved Docker image to artifact cache
@@ -111,7 +132,7 @@ jobs:
         if: env.DOCKER_TAG != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
-          docker load < docker-image.tar.gz
+          docker load -i docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
         if: env.DOCKER_TAG == 'latest'
@@ -204,7 +225,7 @@ jobs:
         if: env.DOCKER_TAG != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
-          docker load < docker-image.tar.gz
+          docker load -i docker-image.tar.gz
 
       - name: Pull latest image from container registry
         if: env.DOCKER_TAG == 'latest'
