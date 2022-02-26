@@ -36,7 +36,15 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
-      - name: Check is artifacts exist
+      - name: Retrieve saved artifactes
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: cpu-tests_mala.yml # ${{ github.event.workflow_run.workflow_id }}
+          run_id: ${{ github.run.id }}
+          name: docker-artifact
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+
+      - name: Check if artifacts exist
         run: tree
 
       - name: Pull latest image from container registry
