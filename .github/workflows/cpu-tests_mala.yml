@@ -36,6 +36,9 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
+      - name: Check is artifacts exist
+        run: tree
+
       - name: Pull latest image from container registry
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
