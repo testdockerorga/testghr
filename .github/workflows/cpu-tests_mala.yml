@@ -50,7 +50,15 @@ jobs:
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
 
-          [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]] && echo "Image IDs are equal" || echo "Image IDs differ"
+          if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
+          then
+            echo "Image IDs are equal"; DOCKER_TAG=latest
+          else
+            echo "Image IDs different"; DOCKER_TAG=$GITHUB_RUN_ID
+          fi
+
+          # Environment variable DOCKER_TAG references the image in subsequent jobs
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
 
       - name: Tag and save temporary built Docker image
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
@@ -76,16 +84,6 @@ jobs:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           retention-days: 1
-
-      - name: Set matrix
-        id: set-matrix
-        run: |
-          if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
-          then
-            echo "DOCKER_TAG=latest" >> $GITHUB_ENV
-          else
-            echo "DOCKER_TAG=$GITHUB_RUN_ID" >> $GITHUB_ENV
-          fi
 
     outputs:
       # Make variables available to all downstream jobs that depend on this job
