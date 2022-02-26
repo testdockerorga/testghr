@@ -72,17 +72,15 @@ jobs:
             docker tag $IMAGE_NAME:latest $IMAGE_NAME:$GITHUB_RUN_ID
 
             # Save Docker image locally
-            time docker save $IMAGE_NAME:$GITHUB_RUN_ID -o $DOCKER_ARTIFACT_PATH/docker-image.tar
-            ls -lh $DOCKER_ARTIFACT_PATH/docker-image.tar
-            time pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
-            ls -lh $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
+            docker save $IMAGE_NAME:$GITHUB_RUN_ID -o $DOCKER_ARTIFACT_PATH/docker-image.tar
+            pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
           fi
 
       - name: Upload saved Docker image to artifact cache
         # Required for reuse in subsequent jobs
         # TODO: ... and for reuse in multiple reruns of the same workflow
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
-        uses: actions/upload-artifact@v2.3.1
+        uses: actions/upload-artifact@v2
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
@@ -102,7 +100,7 @@ jobs:
     steps:
       - name: "Prepare environment: Retrieve saved artifactes"
         if: env.DOCKER_TAG != 'latest'
-        uses: actions/download-artifact@v2.1.0
+        uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
@@ -111,8 +109,7 @@ jobs:
         if: env.DOCKER_TAG != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
-          unpigz -v docker-image.tar.gz
-          time docker load -i docker-image.tar
+          docker load -i docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
         if: env.DOCKER_TAG == 'latest'
