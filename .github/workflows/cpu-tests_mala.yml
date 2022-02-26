@@ -106,20 +106,20 @@ jobs:
        version: ${{ fromJSON(needs.build-temp-docker-image-cpu.outputs.matrix) }} # TODO: rename version: -> docker-tag:?
     steps:
       - name: "Prepare environment: Retrieve saved artifactes"
-        if: matrix.version != 'latest'
+        if: env.DOCKER_TAG != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
 
       - name: "Prepare environment: Load Docker image from artifacts"
-        if: matrix.version != 'latest'
+        if: env.DOCKER_TAG != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
-        if: matrix.version == 'latest'
+        if: env.DOCKER_TAG == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
           docker image tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_NAME:latest
@@ -127,7 +127,7 @@ jobs:
       - name: "Prepare environment: Run Docker container"
         run: |
           # Make the github workspace (i.e. checked out mala repository) available inside Docker container
-          docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:${{ matrix.version }}
+          docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:$DOCKER_TAG
 
       - name: Check out repository (mala)
         uses: actions/checkout@v2
@@ -203,27 +203,27 @@ jobs:
       ) || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Retrieve saved artifactes
-        if: matrix.version != 'latest'
+        if: env.DOCKER_TAG != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
 
       - name: Load Docker image from artifacts
-        if: matrix.version != 'latest'
+        if: env.DOCKER_TAG != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
           docker load < docker-image.tar.gz
 
       - name: Pull latest image from container registry
-        if: matrix.version == 'latest'
+        if: env.DOCKER_TAG == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
 
       - name: Tag Docker image
         run: |
           # Execute on change of Docker image
-          if ${{ matrix.version != 'latest' }}; then
+          if [[ "$DOCKER_TAG" != 'latest' ]]; then
             GIT_SHA=${GITHUB_REF_NAME}-$(git rev-parse --short "$GITHUB_SHA")
             echo "GIT_SHA=$GIT_SHA"
 
