@@ -82,7 +82,7 @@ jobs:
         # Required for reuse in subsequent jobs
         # TODO: ... and for reuse in multiple reruns of the same workflow
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.3.1
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
@@ -102,7 +102,7 @@ jobs:
     steps:
       - name: "Prepare environment: Retrieve saved artifactes"
         if: env.DOCKER_TAG != 'latest'
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2.1.0
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
