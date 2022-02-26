@@ -36,19 +36,31 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
-      - name: Retrieve saved artifactes
+      - name: Retrieve saved artifacts from previous workflow runs if any available
         uses: dawidd6/action-download-artifact@v2
+        id: xxx
         with:
           workflow: cpu-tests_mala.yml # ${{ github.event.workflow_run.workflow_id }}
           run_id: ${{ github.run.id }}
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
+        continue-on-error: true
 
-      - name: Check if artifacts exist
-        run: tree
+      - name: Check artifact existence
+        id: check_files
+        run: |
+          if [[ -f $DOCKER_ARTIFACT_PATH/docker-image.tar.gz ]]; then
+            echo '::set-output name=artifacts-exists::true'
+          else
+            echo '::set-output name=artifacts-exists::false'
+          fi
 
       - name: Pull latest image from container registry
-        run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
+        #if: steps.check_files.outputs.artifacts_exists == 'true'
+        run: |
+          echo "${{ steps.check_files.outputs }}"
+          echo "${{ steps.xxx.outputs }}}⅛
+          docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary image
         run: |
