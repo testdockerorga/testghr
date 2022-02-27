@@ -92,7 +92,7 @@ jobs:
         id: restore-build
         with:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
-          key: ${{ github.run.id }}
+          key: ${{ github.run_id }}
 
     outputs:
       # Make variables available to all downstream jobs that depend on this job
