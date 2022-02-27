@@ -109,6 +109,15 @@ jobs:
       matrix:
         pytest-split: [tests_1, tests_2]
     steps:
+      - name: Get cache
+        uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+          key: ${{ github.run_id }}
+
+      - run: tree
+
       - name: "Prepare environment: Retrieve saved artifactes"
         if: false
         #if: env.DOCKER_TAG != 'latest'
