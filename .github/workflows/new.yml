@@ -1,0 +1,248 @@
+name: CPU tests (mala)
+
+on:
+  pull_request:
+    # Trigger on pull requests to main or develop
+    branches:
+      - main
+      - develop
+  push:
+    # Trigger on pushes to main or develop and for git tag pushes
+    branches:
+      - main
+      - develop
+    tags:
+      - v*
+
+env:
+  IMAGE_NAME: mala_conda_cpu
+  IMAGE_REGISTRY: ghcr.io
+  DOCKER_ARTIFACT_PATH: artifacts/docker
+
+jobs:
+  build-temp-docker-image-cpu:
+    # Build and push temporary Docker image to GitHub's container registry
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Set environment variables
+        run: |
+          # Change all uppercase letters to lowercase
+          IMAGE_REPO=$IMAGE_REGISTRY/$(echo $GITHUB_REPOSITORY_OWNER | tr '[A-Z]' '[a-z]')
+
+          # Create environment variable to which any subsequent steps inside this workflow's job have access
+          echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
+          echo "IMAGE_REPO=$IMAGE_REPO"
+
+      - name: Pull latest image from container registry
+        run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
+
+      - name: Build temporary image
+        run: |
+          docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$IMAGE_REPO/$IMAGE_NAME:latest --build-arg DEVICE=cpu
+
+          # Get image IDs (hash of the local image JSON configuration) and check if images are equal
+          IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_REPO/$IMAGE_NAME)
+          IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME)
+
+          echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
+          echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
+
+          if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
+          then
+            echo "Image IDs are equal"; DOCKER_TAG=latest
+          else
+            echo "Image IDs different"; DOCKER_TAG=$GITHUB_RUN_ID
+          fi
+
+          # Environment variable DOCKER_TAG references the image in subsequent jobs
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+
+      - name: Tag and save temporary built Docker image
+        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
+        run: |
+          mkdir -p $DOCKER_ARTIFACT_PATH
+
+          # if temporary image is different from latest on ghcr.io
+          if [[ "$IMAGE_ID_OLD" != "$IMAGE_ID_NEW" ]]
+          then
+            # Use GITHUB_RUN_ID, a unique number for each workflow run within a repository as a temporary Docker tag
+            docker tag $IMAGE_NAME:latest $IMAGE_NAME:$GITHUB_RUN_ID
+
+            # Save Docker image locally
+            docker save $IMAGE_NAME:$GITHUB_RUN_ID -o $DOCKER_ARTIFACT_PATH/docker-image.tar
+            pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
+          fi
+
+      - name: Upload saved Docker image to artifact cache
+        # Required for reuse in subsequent jobs
+        # TODO: ... and for reuse in multiple reruns of the same workflow
+        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-artifact
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+          retention-days: 1
+
+    outputs:
+      # Make variables available to all downstream jobs that depend on this job
+      image-repo: ${{ env.IMAGE_REPO }}
+      docker-tag: ${{ env.DOCKER_TAG }}
+
+  cpu-tests:
+    needs: build-temp-docker-image-cpu
+    runs-on: ubuntu-18.04
+    env:
+      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
+      DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
+    strategy:
+      matrix:
+        pytest-split: [tests_1, tests_2]
+    steps:
+      - name: "Prepare environment: Retrieve saved artifactes"
+        if: false
+        #if: env.DOCKER_TAG != 'latest'
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-artifact
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+
+      - name: "Prepare environment: Load Docker image from artifacts"
+        if: false
+        #if: env.DOCKER_TAG != 'latest'
+        run: |
+          cd $DOCKER_ARTIFACT_PATH
+          docker load -i docker-image.tar.gz
+
+      - name: "Prepare environment: Pull latest image from container registry"
+        if: false
+        #if: env.DOCKER_TAG == 'latest'
+        run: |
+          docker pull $IMAGE_REPO/$IMAGE_NAME:latest
+          docker image tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_NAME:latest
+
+      - name: "Prepare environment: Run Docker container"
+        if: false
+        run: |
+          # Make the github workspace (i.e. checked out mala repository) available inside Docker container
+          docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:$DOCKER_TAG
+
+      - name: Check out repository (mala)
+        if: false
+        uses: actions/checkout@v2
+        with:
+          repository: DanielKotik/mala
+          ref: develop
+
+      - name: Show some Docker container specifics
+        if: false
+        # Exec all commands inside the mala-cpu container
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        run: |
+          cat /etc/os-release
+          conda env list
+          pwd
+          ls -lah
+
+      - name: Install mala package
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        if: false
+        run: |
+          # epxort Docker image Conda environment for a later comparison
+          conda env export -n mala-cpu > env_1.yml
+
+          # install mala package
+          pip --no-cache-dir install -e .
+
+          # install extra dependencies
+          pip install oapackage
+          pip install pytest
+
+      - name: Check if Conda environment meets the specified requirements
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        if: false
+        run: |
+          # export Conda environment _with_ mala package installed in it (and extra dependencies)
+          conda env export -n mala-cpu > env_2.yml
+
+          # if comparison fails, `install/mala_cpu_[base]_environment.yml` needs to be aligned with
+          # `requirements.txt` and/or extra dependencies are missing in the Docker Conda environment
+          diff env_1.yml env_2.yml
+
+      - name: Check out repository (data)
+        if: false
+        uses: actions/checkout@v2
+        with:
+          repository: mala-project/test-data
+          path: mala_data
+          ref: v1.3.0
+          lfs: false
+
+      - name: Test mala
+        if: false
+        shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
+        run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
+
+  retag-docker-image-cpu:
+    needs: [cpu-tests, build-temp-docker-image-cpu]
+    runs-on: ubuntu-18.04
+    permissions:
+      packages: write
+    env:
+      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
+      DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
+    # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
+    # NOTE: The `env` context is not available for workflow key `jobs.<job_id>.if`.
+    if: false
+     # ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.docker-tag != 'latest')
+     # || startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: "Prepare environment: Retrieve saved artifactes"
+        if: env.DOCKER_TAG != 'latest'
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-artifact
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+
+      - name: "Prepare environment: Load Docker image from artifacts"
+        if: env.DOCKER_TAG != 'latest'
+        run: |
+          cd $DOCKER_ARTIFACT_PATH
+          docker load -i docker-image.tar.gz
+
+      - name: "Prepare environment: Pull latest image from container registry"
+        if: env.DOCKER_TAG == 'latest'
+        run: |
+          docker pull $IMAGE_REPO/$IMAGE_NAME:latest
+
+      - name: Tag Docker image
+        run: |
+          # Execute on change of Docker image
+          if [[ "$DOCKER_TAG" != 'latest' ]]; then
+            GIT_SHA=${GITHUB_REF_NAME}-$(git rev-parse --short "$GITHUB_SHA")
+            echo "GIT_SHA=$GIT_SHA"
+
+            docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:latest
+            docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:$GIT_SHA
+          fi
+
+          # Execute on push of git tag
+          if ${{ startsWith(github.ref, 'refs/tags/') }}; then
+            GIT_TAG=$(echo "${{ github.ref_name }}" | sed -e 's/^v//')
+            echo "GIT_TAG=$GIT_TAG"
+
+            docker tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_REPO/$IMAGE_NAME:$GIT_TAG
+          fi
+
+      - name: Log into container registry
+        # Authentication required for pushing images
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push Docker image
+        run: docker push $IMAGE_REPO/$IMAGE_NAME --all-tags
+
