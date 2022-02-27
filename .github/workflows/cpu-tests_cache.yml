@@ -221,9 +221,9 @@ jobs:
       DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
     # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
     # NOTE: The `env` context is not available for workflow key `jobs.<job_id>.if`.
-    if: false
-     # ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.docker-tag != 'latest')
-     # || startsWith(github.ref, 'refs/tags/')
+    if: |
+      ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.docker-tag != 'latest')
+      || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
