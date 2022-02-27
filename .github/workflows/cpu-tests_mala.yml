@@ -176,7 +176,9 @@ jobs:
         if: true
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
-        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --disable-warnings
+        run: |
+           MALA_DATA_REPO=$(pwd)/mala_data pytest test/test_1 --disable-warnings
+           MALA_DATA_REPO=$(pwd)/mala_data pytest test/test_2 --disable-warnings
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
