@@ -110,6 +110,7 @@ jobs:
         pytest-split: [tests_1, tests_2]
     steps:
       - name: Get cache
+        if: env.DOCKER_TAG != 'latest'
         uses: actions/cache@v2
         id: restore-build
         with:
@@ -119,8 +120,8 @@ jobs:
       - run: tree
 
       - name: "Prepare environment: Retrieve saved artifactes"
-        if: false
-        #if: env.DOCKER_TAG != 'latest'
+        #if: false
+        if: env.DOCKER_TAG != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
