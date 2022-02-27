@@ -49,8 +49,10 @@ jobs:
 
       - name: Build temporary image
         run: |
-          CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
-          [[ steps.cache-docker.outputs.cache-hit == 'true' ]] && CACHE=$DOCKER_ARTIFACT_PATH/docker-image.tar.gz ||
+          #CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
+          echo "FOO=${{ steps.cache-docker.outputs.cache-hit }}"
+          [[ "${{ steps.cache-docker.outputs.cache-hit }}" == 'true' ]] && CACHE=$DOCKER_ARTIFACT_PATH/docker-image.tar.gz || CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
+          echo "CACHE=$CACHE"
 
           docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$CACHE --build-arg DEVICE=cpu
 
@@ -128,7 +130,7 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
-      - run: echo "${{ github.run_id }}
+      - run: echo "${{ github.run_id }}"
 
       - name: "Prepare environment: Retrieve saved artifactes"
         #if: false
