@@ -219,8 +219,8 @@ jobs:
             GIT_SHA=${GITHUB_REF_NAME}-$(git rev-parse --short "$GITHUB_SHA")
             echo "GIT_SHA=$GIT_SHA"
 
-            docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:$GIT_SHA
             docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:latest
+            docker tag $IMAGE_NAME:$GITHUB_RUN_ID $IMAGE_REPO/$IMAGE_NAME:$GIT_SHA
           fi
 
           # Execute on push of git tag
@@ -236,8 +236,5 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push Docker image
-        run: |
-          docker push $IMAGE_REPO/$IMAGE_NAME --all-tags
-          docker push $IMAGE_REPO/$IMAGE_NAME:latest
-
+        run: docker push $IMAGE_REPO/$IMAGE_NAME --all-tags
 
