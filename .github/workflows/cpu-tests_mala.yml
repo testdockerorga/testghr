@@ -195,20 +195,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Retrieve saved artifactes
+      - name: "Prepare environment: Retrieve saved artifactes"
         if: env.DOCKER_TAG != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
 
-      - name: Load Docker image from artifacts
+      - name: "Prepare environment: Load Docker image from artifacts"
         if: env.DOCKER_TAG != 'latest'
         run: |
           cd $DOCKER_ARTIFACT_PATH
           docker load -i docker-image.tar.gz
 
-      - name: Pull latest image from container registry
+      - name: "Prepare environment: Pull latest image from container registry"
         if: env.DOCKER_TAG == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
