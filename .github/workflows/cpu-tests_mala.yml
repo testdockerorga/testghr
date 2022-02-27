@@ -97,9 +97,9 @@ jobs:
     env:
       IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
       DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
-    #strategy:
-    #  matrix:
-    #    pytest-split: [tests_1, tests_2]
+    strategy:
+      matrix:
+        pytest-split: [tests_1, tests_2]
     steps:
       - name: "Prepare environment: Retrieve saved artifactes"
         if: env.DOCKER_TAG != 'latest'
@@ -141,7 +141,6 @@ jobs:
           ls -lah
 
       - name: Install mala package
-        # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         if: true
         run: |
@@ -156,7 +155,6 @@ jobs:
           pip install pytest
 
       - name: Check if Conda environment meets the specified requirements
-        # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         if: false
         run: |
@@ -177,13 +175,8 @@ jobs:
 
       - name: Test mala
         if: true
-        # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
-        run: |
-           ls -lh
-           MALA_DATA_REPO=$(pwd)/mala_data
-           pytest test/tests_1 --disable-warnings
-           pytest test/tests_2 --disable-warnings
+        run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
