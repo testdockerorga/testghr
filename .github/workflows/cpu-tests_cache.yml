@@ -36,7 +36,7 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
-      - name: Check if cache exists cache
+      - name: Check if cache exists
         uses: actions/cache@v2
         id: cache-docker
         with:
@@ -49,7 +49,10 @@ jobs:
 
       - name: Build temporary image
         run: |
-          docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$IMAGE_REPO/$IMAGE_NAME:latest --build-arg DEVICE=cpu
+          CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
+          [[ steps.cache-docker.outputs.cache-hit == 'true' ]] && CACHE=$DOCKER_ARTIFACT_PATH/docker-image.tar.gz ||
+
+          docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$CACHE --build-arg DEVICE=cpu
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
           IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_REPO/$IMAGE_NAME)
