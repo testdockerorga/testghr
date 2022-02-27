@@ -177,6 +177,7 @@ jobs:
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         run: |
+           tree
            MALA_DATA_REPO=$(pwd)/mala_data pytest test/test_1 --disable-warnings
            MALA_DATA_REPO=$(pwd)/mala_data pytest test/test_2 --disable-warnings
 
