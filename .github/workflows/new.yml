@@ -36,7 +36,15 @@ jobs:
           echo "IMAGE_REPO=$IMAGE_REPO" >> $GITHUB_ENV
           echo "IMAGE_REPO=$IMAGE_REPO"
 
+      - name: Check if cache exists cache
+        uses: actions/cache@v2
+        id: cache-docker
+        with:
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+          key: ${{ github.run_id }}
+
       - name: Pull latest image from container registry
+        if: steps.cache-docker.outputs.cache-hit != 'true'
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary image
@@ -73,7 +81,7 @@ jobs:
 
             # Save Docker image locally
             docker save $IMAGE_NAME:$GITHUB_RUN_ID -o $DOCKER_ARTIFACT_PATH/docker-image.tar
-            #pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
+            pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
           fi
 
       - name: Upload saved Docker image to artifact cache
