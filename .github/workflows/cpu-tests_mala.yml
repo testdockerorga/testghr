@@ -125,7 +125,8 @@ jobs:
       - name: Check out repository (mala)
         uses: actions/checkout@v2
         with:
-          repository: mala-project/mala
+          repository: DanielKotik/mala
+          ref: develop
 
       - name: Show some Docker container specifics
         # Exec all commands inside the mala-cpu container
@@ -139,7 +140,7 @@ jobs:
       - name: Install mala package
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
-        if: false
+        if: true
         run: |
           # epxort Docker image Conda environment for a later comparison
           conda env export -n mala-cpu > env_1.yml
@@ -172,7 +173,7 @@ jobs:
           lfs: false
 
       - name: Test mala
-        if: false
+        if: true
         # Exec all commands inside the mala-cpu container
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         run: MALA_DATA_REPO=$(pwd)/mala_data pytest --disable-warnings
