@@ -182,8 +182,8 @@ jobs:
         run: |
            ls -lh
            MALA_DATA_REPO=$(pwd)/mala_data
-           pytest test/test_1 --disable-warnings
-           pytest test/test_2 --disable-warnings
+           pytest test/tests_1 --disable-warnings
+           pytest test/tests_2 --disable-warnings
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-temp-docker-image-cpu]
