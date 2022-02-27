@@ -1,4 +1,4 @@
-name: CPU tests (mala)
+name: CPU tests (cache)
 
 on:
   pull_request:
@@ -85,6 +85,14 @@ jobs:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           retention-days: 1
+
+      - name: Move saved Docker image to cache
+        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
+        uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ${{ env.DOCKER_ARTIFACT_PATH }}
+          key: ${{ github.run.id }}
 
     outputs:
       # Make variables available to all downstream jobs that depend on this job
