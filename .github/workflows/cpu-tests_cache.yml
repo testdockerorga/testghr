@@ -125,7 +125,7 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
-      - run: tree
+      - run: echo "${{ github.run_id }}
 
       - name: "Prepare environment: Retrieve saved artifactes"
         #if: false
