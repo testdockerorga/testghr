@@ -49,23 +49,27 @@ jobs:
 
       - name: Build temporary image
         run: |
-          #CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
-          echo "FOO=${{ steps.cache-docker.outputs.cache-hit }}"
-          [[ "${{ steps.cache-docker.outputs.cache-hit }}" == 'true' ]] && CACHE=$DOCKER_ARTIFACT_PATH/docker-image.tar.gz || CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
-          echo "CACHE=$CACHE"
+          if [[ "${{ steps.cache-docker.outputs.cache-hit }}" == 'true' ]]
+          then
+            time docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
+            CACHE=$IMAGE_NAME:$GITHUB_RUN_ID
+          else
+            CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
+          fi
 
           docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$CACHE --build-arg DEVICE=cpu
+          docker images
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
-          IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_REPO/$IMAGE_NAME)
-          IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME)
+          IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$CACHE)
+          IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME:latest)
 
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
 
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
-            echo "Image IDs are equal"; DOCKER_TAG=latest
+            echo "Image IDs are equal"; DOCKER_TAG=latest # FIXME: abhaenig von steps.cache-docker.outputs.cache-hit
           else
             echo "Image IDs different"; DOCKER_TAG=$GITHUB_RUN_ID
           fi
