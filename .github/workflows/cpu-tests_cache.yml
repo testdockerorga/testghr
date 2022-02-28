@@ -96,7 +96,6 @@ jobs:
       - name: Move saved Docker image to cache
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         uses: actions/cache@v2
-        id: restore-build
         with:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
