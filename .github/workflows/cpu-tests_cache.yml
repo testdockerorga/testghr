@@ -96,13 +96,6 @@ jobs:
             pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
           fi
 
-      #- name: Move saved Docker image to cache
-      #  if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
-      #  uses: actions/cache@v2
-      #  with:
-      #    path: ${{ env.DOCKER_ARTIFACT_PATH }}
-      #    key: ${{ github.run_id }}
-
     outputs:
       # Make variables available to all downstream jobs that depend on this job
       image-repo: ${{ env.IMAGE_REPO }}
@@ -125,9 +118,18 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
+      - id: check_file
+        run: |
+          if [[ -f "$$DOCKER_ARTIFACT_PATH/docker-image.tar.gz" ]]; then
+            echo '::set-output name=file_exists::true'
+          else
+            echo '::set-output name=file_exists::false'
+          fi
+
       - name: "Prepare environment: Load Docker image from cache"
         #if: steps.cache-docker.outputs.cache-hit == 'true'
-        if: hashFiles('**/docker-image.tar.gz') != ''
+        if: steps.check_file.outputs.files_exist == 'true'
+        #if: hashFiles('**/docker-image.tar.gz') != ''
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
