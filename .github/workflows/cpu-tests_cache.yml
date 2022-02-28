@@ -118,9 +118,10 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
-      - id: check_file
+      - name: Check existence of Docker tar archive
+        id: check_file
         run: |
-          if [[ -f "$$DOCKER_ARTIFACT_PATH/docker-image.tar.gz" ]]; then
+          if [[ -f "$DOCKER_ARTIFACT_PATH/docker-image.tar.gz" ]]; then
             echo '::set-output name=file_exists::true'
           else
             echo '::set-output name=file_exists::false'
@@ -128,7 +129,7 @@ jobs:
 
       - name: "Prepare environment: Load Docker image from cache"
         #if: steps.cache-docker.outputs.cache-hit == 'true'
-        if: steps.check_file.outputs.files_exist == 'true'
+        if: steps.check_file.outputs.file_exists == 'true'
         #if: hashFiles('**/docker-image.tar.gz') != ''
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
