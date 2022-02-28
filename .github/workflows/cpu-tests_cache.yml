@@ -47,7 +47,7 @@ jobs:
         if: steps.cache-docker.outputs.cache-hit != 'true'
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
-      - name: Build temporary image
+      - name: Build temporary Docker image
         run: |
           if [[ "${{ steps.cache-docker.outputs.cache-hit }}" == 'true' ]]
           then
@@ -58,7 +58,6 @@ jobs:
           fi
 
           docker build . --file Dockerfile.mala --tag $IMAGE_NAME --cache-from=$CACHE --build-arg DEVICE=cpu
-          docker images
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
           IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$CACHE)
