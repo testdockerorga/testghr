@@ -128,14 +128,11 @@ jobs:
           fi
 
       - name: "Prepare environment: Load Docker image from cache"
-        #if: steps.cache-docker.outputs.cache-hit == 'true'
         if: steps.check_file.outputs.file_exists == 'true'
-        #if: hashFiles('**/docker-image.tar.gz') != ''
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
-        #if: steps.cache-docker.outputs.cache-hit != 'true'
-        if: hashFiles('**/docker-image.tar.gz') == ''
+        if: steps.check_file.outputs.file_exists == 'false'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
           docker image tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_NAME:latest
@@ -162,7 +159,6 @@ jobs:
 
       - name: Install mala package
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
-        if: false
         run: |
           # epxort Docker image Conda environment for a later comparison
           conda env export -n mala-cpu > env_1.yml
@@ -176,7 +172,6 @@ jobs:
 
       - name: Check if Conda environment meets the specified requirements
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
-        if: false
         run: |
           # export Conda environment _with_ mala package installed in it (and extra dependencies)
           conda env export -n mala-cpu > env_2.yml
@@ -186,7 +181,6 @@ jobs:
           diff env_1.yml env_2.yml
 
       - name: Check out repository (data)
-        if: false
         uses: actions/checkout@v2
         with:
           repository: mala-project/test-data
@@ -195,7 +189,6 @@ jobs:
           lfs: false
 
       - name: Test mala
-        if: false
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
 
@@ -223,14 +216,21 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
+      - name: Check existence of Docker tar archive
+        id: check_file
+        run: |
+          if [[ -f "$DOCKER_ARTIFACT_PATH/docker-image.tar.gz" ]]; then
+            echo '::set-output name=file_exists::true'
+          else
+            echo '::set-output name=file_exists::false'
+          fi
+
       - name: "Prepare environment: Load Docker image from cache"
-        #if: steps.cache-docker.outputs.cache-hit == 'true'
-        if: hashFiles('**/docker-image.tar.gz') != ''
+        if: steps.check_file.outputs.file_exists == 'true'
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
-        #if: steps.cache-docker.outputs.cache-hit != 'true'
-        if: hashFiles('**/docker-image.tar.gz') == ''
+        if: steps.check_file.outputs.file_exists == 'false'
         run: docker pull $IMAGE_REPO/$IMAGE_NAME:latest
 
       - name: Tag Docker image
