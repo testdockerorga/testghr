@@ -154,7 +154,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: DanielKotik/mala
-          ref: develop
+          ref: split-pytest
 
       - name: Show some Docker container specifics
         # Exec all commands inside the mala-cpu container
