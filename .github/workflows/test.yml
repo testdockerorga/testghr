@@ -18,4 +18,10 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - name: foo
-        run: docker images
+        run: |
+            docker images
+            docker pull ghcr.io/testdockerorga/mala_conda_cpu:main-00732c9
+            docker images
+            docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home ghcr.io/testdockerorga/mala_conda_cpu
+            echo "Exit code: $?"
+            docker ps --all
