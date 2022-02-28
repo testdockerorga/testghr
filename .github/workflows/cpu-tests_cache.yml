@@ -43,9 +43,17 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
+      - name: Check existence of Docker tar archive
+        id: check_file
+        run: |
+          if [[ -f "$DOCKER_ARTIFACT_PATH/docker-image.tar.gz" ]]; then
+            echo '::set-output name=file_exists::true'
+          else
+            echo '::set-output name=file_exists::false'
+          fi
+
       - name: Pull latest image from container registry
-        #if: steps.cache-docker.outputs.cache-hit != 'true'
-        if: hashFiles('**/docker-image.tar.gz') == ''
+        if: steps.check_file.outputs.file_exists == 'false'
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary Docker image
