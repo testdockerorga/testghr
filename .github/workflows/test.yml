@@ -19,9 +19,9 @@ jobs:
     steps:
       - name: foo
         run: |
+            docker pull ghcr.io/testdockerorga/mala_conda_cpu:latest
             docker images
-            docker pull ghcr.io/testdockerorga/mala_conda_cpu:main-00732c9
-            docker images
-            docker -D run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home ghcr.io/testdockerorga/mala_conda_cpu
+            #docker -D run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home ghcr.io/testdockerorga/mala_conda_cpu
+            for i in `seq 10`; do docker -D run -d -i --rm ghcr.io/testdockerorga/mala_conda_cpu  /bin/bash & done; wait
             echo "Exit code: $?"
             docker ps --all
