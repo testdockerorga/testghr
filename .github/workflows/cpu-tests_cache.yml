@@ -69,7 +69,7 @@ jobs:
 
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
-            echo "Image IDs are equal"; DOCKER_TAG=latest # FIXME: abhaenig von steps.cache-docker.outputs.cache-hit
+            echo "Image IDs are equal"; DOCKER_TAG=latest
           else
             echo "Image IDs are different"; DOCKER_TAG=$GITHUB_RUN_ID
           fi
@@ -92,17 +92,6 @@ jobs:
             docker save $IMAGE_NAME:$GITHUB_RUN_ID -o $DOCKER_ARTIFACT_PATH/docker-image.tar
             pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
           fi
-
-      - name: Upload saved Docker image to artifact cache
-        # Required for reuse in subsequent jobs
-        # TODO: ... and for reuse in multiple reruns of the same workflow
-        if: false
-        #if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
-        uses: actions/upload-artifact@v2
-        with:
-          name: docker-artifact
-          path: ${{ env.DOCKER_ARTIFACT_PATH }}
-          retention-days: 1
 
       - name: Move saved Docker image to cache
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
@@ -134,22 +123,12 @@ jobs:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
-      - name: "Prepare environment: Retrieve saved artifactes"
-        if: false
-        #if: env.DOCKER_TAG != 'latest'
-        uses: actions/download-artifact@v2
-        with:
-          name: docker-artifact
-          path: ${{ env.DOCKER_ARTIFACT_PATH }}
-
-      - name: "Prepare environment: Load Docker image from artifacts"
+      - name: "Prepare environment: Load Docker image from cache"
         if: steps.cache-docker.outputs.cache-hit == 'true'
-        #if: env.DOCKER_TAG != 'latest'
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
         if: steps.cache-docker.outputs.cache-hit != 'true'
-        #if: env.DOCKER_TAG == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
           docker image tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_NAME:latest
