@@ -20,7 +20,7 @@ env:
   DOCKER_ARTIFACT_PATH: artifacts/docker
 
 jobs:
-  build-temp-docker-image-cpu:
+  build-docker-image-cpu:
     # Build and push temporary Docker image to GitHub's container registry
     runs-on: ubuntu-18.04
     steps:
@@ -108,11 +108,11 @@ jobs:
       docker-tag: ${{ env.DOCKER_TAG }}
 
   cpu-tests:
-    needs: build-temp-docker-image-cpu
+    needs: build-docker-image-cpu
     runs-on: ubuntu-18.04
     env:
-      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
-      DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
+      IMAGE_REPO: ${{ needs.build-docker-image-cpu.outputs.image-repo }}
+      DOCKER_TAG: ${{ needs.build-docker-image-cpu.outputs.docker-tag }}
     strategy:
       matrix:
         pytest-split: [tests_1, tests_2]
@@ -194,17 +194,17 @@ jobs:
         run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
 
   retag-docker-image-cpu:
-    needs: [cpu-tests, build-temp-docker-image-cpu]
+    needs: [cpu-tests, build-docker-image-cpu]
     runs-on: ubuntu-18.04
     permissions:
       packages: write
     env:
-      IMAGE_REPO: ${{ needs.build-temp-docker-image-cpu.outputs.image-repo }}
-      DOCKER_TAG: ${{ needs.build-temp-docker-image-cpu.outputs.docker-tag }}
+      IMAGE_REPO: ${{ needs.build-docker-image-cpu.outputs.image-repo }}
+      DOCKER_TAG: ${{ needs.build-docker-image-cpu.outputs.docker-tag }}
     # Trigger on pushes to main or develop (this includes _merged_ PRs) only if Docker image has changed and on git tag pushes
     # NOTE: The `env` context is not available for workflow key `jobs.<job_id>.if`.
     if: |
-      ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-temp-docker-image-cpu.outputs.docker-tag != 'latest')
+      ((contains(github.ref_name, 'develop') || contains(github.ref_name, 'main')) && needs.build-docker-image-cpu.outputs.docker-tag != 'latest')
       || startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Check out repository
