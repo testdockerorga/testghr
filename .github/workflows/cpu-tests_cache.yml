@@ -51,7 +51,7 @@ jobs:
         run: |
           if [[ "${{ steps.cache-docker.outputs.cache-hit }}" == 'true' ]]
           then
-            time docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
+            docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
             CACHE=$IMAGE_NAME:$GITHUB_RUN_ID
           else
             CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
@@ -96,7 +96,8 @@ jobs:
       - name: Upload saved Docker image to artifact cache
         # Required for reuse in subsequent jobs
         # TODO: ... and for reuse in multiple reruns of the same workflow
-        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
+        if: false
+        #if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         uses: actions/upload-artifact@v2
         with:
           name: docker-artifact
@@ -127,41 +128,37 @@ jobs:
         pytest-split: [tests_1, tests_2]
     steps:
       - name: Get cache
-        if: env.DOCKER_TAG != 'latest'
         uses: actions/cache@v2
-        id: restore-build
+        id: cache-docker
         with:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
           key: ${{ github.run_id }}
 
-      - run: echo "${{ github.run_id }}"
-
       - name: "Prepare environment: Retrieve saved artifactes"
-        #if: false
-        if: env.DOCKER_TAG != 'latest'
+        if: false
+        #if: env.DOCKER_TAG != 'latest'
         uses: actions/download-artifact@v2
         with:
           name: docker-artifact
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
 
       - name: "Prepare environment: Load Docker image from artifacts"
-        if: false
+        if: steps.cache-docker.outputs.cache-hit == 'true'
         #if: env.DOCKER_TAG != 'latest'
-        run: |
-          cd $DOCKER_ARTIFACT_PATH
-          docker load -i docker-image.tar.gz
+        run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
-        if: false
+        if: steps.cache-docker.outputs.cache-hit != 'true'
         #if: env.DOCKER_TAG == 'latest'
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
           docker image tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_NAME:latest
 
       - name: "Prepare environment: Run Docker container"
-        if: false
+        if: true
         run: |
           # Make the github workspace (i.e. checked out mala repository) available inside Docker container
+          docker images
           docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:$DOCKER_TAG
 
       - name: Check out repository (mala)
