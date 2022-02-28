@@ -41,10 +41,11 @@ jobs:
         id: cache-docker
         with:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
-          key: ${{ github.run_id }}-${{ hashFiles('**/docker-image.tar.gz') }}
+          key: ${{ github.run_id }}
 
       - name: Pull latest image from container registry
-        if: steps.cache-docker.outputs.cache-hit != 'true'
+        #if: steps.cache-docker.outputs.cache-hit != 'true'
+        if: hashFiles('**/docker-image.tar.gz') == ''
         run: docker pull $IMAGE_REPO/$IMAGE_NAME || true
 
       - name: Build temporary Docker image
@@ -95,12 +96,12 @@ jobs:
             pigz --fast $DOCKER_ARTIFACT_PATH/docker-image.tar
           fi
 
-      - name: Move saved Docker image to cache
-        if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.DOCKER_ARTIFACT_PATH }}
-          key: ${{ github.run_id }}-${{ hashFiles('**/docker-image.tar.gz') }}
+      #- name: Move saved Docker image to cache
+      #  if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
+      #  uses: actions/cache@v2
+      #  with:
+      #    path: ${{ env.DOCKER_ARTIFACT_PATH }}
+      #    key: ${{ github.run_id }}
 
     outputs:
       # Make variables available to all downstream jobs that depend on this job
@@ -122,14 +123,16 @@ jobs:
         id: cache-docker
         with:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
-          key: ${{ github.run_id }}-${{ hashFiles('**/docker-image.tar.gz') }}
+          key: ${{ github.run_id }}
 
       - name: "Prepare environment: Load Docker image from cache"
-        if: steps.cache-docker.outputs.cache-hit == 'true'
+        #if: steps.cache-docker.outputs.cache-hit == 'true'
+        if: hashFiles('**/docker-image.tar.gz') != ''
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
-        if: steps.cache-docker.outputs.cache-hit != 'true'
+        #if: steps.cache-docker.outputs.cache-hit != 'true'
+        if: hashFiles('**/docker-image.tar.gz') == ''
         run: |
           docker pull $IMAGE_REPO/$IMAGE_NAME:latest
           docker image tag $IMAGE_REPO/$IMAGE_NAME:latest $IMAGE_NAME:latest
@@ -215,14 +218,16 @@ jobs:
         id: cache-docker
         with:
           path: ${{ env.DOCKER_ARTIFACT_PATH }}
-          key: ${{ github.run_id }}-${{ hashFiles('**/docker-image.tar.gz') }}
+          key: ${{ github.run_id }}
 
       - name: "Prepare environment: Load Docker image from cache"
-        if: steps.cache-docker.outputs.cache-hit == 'true'
+        #if: steps.cache-docker.outputs.cache-hit == 'true'
+        if: hashFiles('**/docker-image.tar.gz') != ''
         run: docker load -i $DOCKER_ARTIFACT_PATH/docker-image.tar.gz
 
       - name: "Prepare environment: Pull latest image from container registry"
-        if: steps.cache-docker.outputs.cache-hit != 'true'
+        #if: steps.cache-docker.outputs.cache-hit != 'true'
+        if: hashFiles('**/docker-image.tar.gz') == ''
         run: docker pull $IMAGE_REPO/$IMAGE_NAME:latest
 
       - name: Tag Docker image
