@@ -65,7 +65,7 @@ jobs:
             CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
           fi
 
-          docker build . --file Dockerfile.mala --tag $IMAGE_NAME:latest --cache-from=$CACHE --build-arg DEVICE=cpu
+          docker build . --file Dockerfile.mala --tag $IMAGE_NAME:latest --cache-from=$CACHE --build-arg DEVICE=cpu # TODO: Is $IMAGE_NAME:local more clear?
 
           # Show images
           docker images --filter=reference=$IMAGE_NAME --filter=reference=$IMAGE_REPO/$IMAGE_NAME
@@ -79,7 +79,7 @@ jobs:
 
           if [[ "$IMAGE_ID_OLD" == "$IMAGE_ID_NEW" ]]
           then
-            echo "Image IDs are equal"; DOCKER_TAG=latest
+            echo "Image IDs are equal"; DOCKER_TAG=latest # TODO: Better reanem DOCKER_TAG to USE_DOCKER_TAG?
           else
             echo "Image IDs are different"; DOCKER_TAG=$GITHUB_RUN_ID
           fi
@@ -87,7 +87,7 @@ jobs:
           # Environment variable DOCKER_TAG references the image in subsequent jobs
           echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
 
-      - name: Tag and save temporary built Docker image
+      - name: Tag and save temporary built Docker image # TODO: Better indicate creation of tar archive and what tag will actually be used
         if: env.IMAGE_ID_OLD != env.IMAGE_ID_NEW
         run: |
           mkdir -p $DOCKER_ARTIFACT_PATH
