@@ -65,14 +65,14 @@ jobs:
             CACHE=$IMAGE_REPO/$IMAGE_NAME:latest
           fi
 
-          docker build . --file Dockerfile.mala --tag $IMAGE_NAME:latest --cache-from=$CACHE --build-arg DEVICE=cpu # TODO: Is $IMAGE_NAME:local more clear?
+          docker build . --file Dockerfile.mala --tag $IMAGE_NAME:local --cache-from=$CACHE --build-arg DEVICE=cpu
 
           # Show images
           docker images --filter=reference=$IMAGE_NAME --filter=reference=$IMAGE_REPO/$IMAGE_NAME
 
           # Get image IDs (hash of the local image JSON configuration) and check if images are equal
           IMAGE_ID_OLD=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_REPO/$IMAGE_NAME:latest)
-          IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME:latest)
+          IMAGE_ID_NEW=$(docker images --format "{{.ID}}" --no-trunc --filter=reference=$IMAGE_NAME:local)
 
           echo "IMAGE_ID_OLD=$IMAGE_ID_OLD" >> $GITHUB_ENV
           echo "IMAGE_ID_NEW=$IMAGE_ID_NEW" >> $GITHUB_ENV
@@ -139,6 +139,12 @@ jobs:
         run: |
           # Make the github workspace (i.e. checked out mala repository) available inside Docker container
           docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:$DOCKER_TAG
+
+          # Check running docker container
+          docker ps
+
+          # Check if docker container is running
+          [[ $(docker inspect --format '{{json .State.Running}}' mala-cpu) == 'true' ]]
 
       - name: Check out repository (mala)
         uses: actions/checkout@v2
