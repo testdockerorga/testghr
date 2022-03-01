@@ -161,6 +161,8 @@ jobs:
           conda env list
           pwd
           ls -lah
+      - name: Force exit
+        run: exit 1
 
       - name: Install mala package
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
