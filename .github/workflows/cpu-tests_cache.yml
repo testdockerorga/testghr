@@ -138,7 +138,7 @@ jobs:
       - name: "Prepare environment: Run Docker container"
         run: |
           # Make the github workspace (i.e. checked out mala repository) available inside Docker container
-          docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:$DOCKER_TAG
+          docker run -i -d --rm --name mala-cpu -v ${{ github.workspace }}:/home -w /home $IMAGE_NAME:$DOCKER_TAG /bin/bash
 
           # Check running docker container
           docker ps
