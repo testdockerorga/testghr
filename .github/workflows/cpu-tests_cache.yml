@@ -200,13 +200,18 @@ jobs:
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest --store-durations --disable-warnings
-        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 --group ${{ matrix.pytest-split-group }} --durations-path test/.test_durations --disable-warnings
+        run: |
+          MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 \
+                                                 --group ${{ matrix.pytest-split-group }} \
+                                                 --durations-path test/.test_durations \
+                                                 --store-durations \
+                                                 --disable-warnings
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: test-duration-file
-          path: .test_durations
+          name: test_duration-split-${{ matrix.pytest-split-group }}
+          path: test/.test_durations
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-docker-image-cpu]
