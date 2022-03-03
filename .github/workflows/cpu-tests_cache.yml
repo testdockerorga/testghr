@@ -213,18 +213,29 @@ jobs:
           name: test_duration-split-${{ matrix.pytest-split-group }}
           path: test/.test_durations
 
-  upload-timings:
+  upload-pytest-timings-artifact:
     needs: cpu-tests
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2
-      - run: tree
-      - name: Combine test durations file
+
+      - name: Combine test duration files
         shell: python
         run: |
-             import json, sys
-             print("Hallo")
+          import json
+          test_durations = {}
+          for group in range(1, 4):
+              with open(f"test_duration-split-{group}/.test_durations") as f:
+                  test_durations.update(json.load(f))
+          with open("test_durations_update.json", "w") as f:
+              json.dump(test_durations, f, indent=1)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: test_duration
+          path: test_durations_update.json
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-docker-image-cpu]
