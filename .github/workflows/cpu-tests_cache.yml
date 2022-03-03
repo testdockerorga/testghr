@@ -213,6 +213,19 @@ jobs:
           name: test_duration-split-${{ matrix.pytest-split-group }}
           path: test/.test_durations
 
+  upload-timings:
+    needs: cpu-tests
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+      - run: tree
+      - name: Combine test durations file
+        shell: python
+        run: |
+             import json, sys
+             print("Hallo")
+
   retag-docker-image-cpu:
     needs: [cpu-tests, build-docker-image-cpu]
     runs-on: ubuntu-18.04
