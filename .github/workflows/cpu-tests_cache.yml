@@ -153,7 +153,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: DanielKotik/mala
-          ref: develop #split-pytest
+          ref: split-pytest
 
       - name: Show some Docker container specifics
         # Exec all commands inside the mala-cpu container
@@ -200,7 +200,7 @@ jobs:
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest --store-durations --disable-warnings
-        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 --group ${{ matrix.pytest-split-group }} --disable-warnings
+        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 --group ${{ matrix.pytest-split-group }} --durations-path test/.test_durations --disable-warnings
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
