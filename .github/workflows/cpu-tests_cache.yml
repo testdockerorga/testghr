@@ -115,7 +115,7 @@ jobs:
       DOCKER_TAG: ${{ needs.build-docker-image-cpu.outputs.docker-tag }}
     strategy:
       matrix:
-        pytest-split: [tests_1] #, tests_2]
+        pytest-split-group: [1, 2, 3] #, tests_2]
     steps:
       - name: "Prepare environment: Restore cache"
         if: env.DOCKER_TAG != 'latest'
@@ -199,8 +199,8 @@ jobs:
       - name: Test mala
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
-        run: |
-          MALA_DATA_REPO=$(pwd)/mala_data pytest --store-durations --disable-warnings
+        #run: MALA_DATA_REPO=$(pwd)/mala_data pytest --store-durations --disable-warnings
+        run: MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 --group ${{ matrix.pytest-split-group }} --disable-warnings
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
