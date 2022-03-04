@@ -113,7 +113,6 @@ jobs:
     env:
       IMAGE_REPO: ${{ needs.build-docker-image-cpu.outputs.image-repo }}
       DOCKER_TAG: ${{ needs.build-docker-image-cpu.outputs.docker-tag }}
-      PYTEST_SPLITS: 3
     strategy:
       matrix:
         pytest-split-group: [1, 2, 3] #, tests_2]
@@ -199,8 +198,6 @@ jobs:
 
       - name: Test mala
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
-        #run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
-        #run: MALA_DATA_REPO=$(pwd)/mala_data pytest --store-durations --disable-warnings
         run: |
           MALA_DATA_REPO=$(pwd)/mala_data pytest --splits ${{ strategy.job-total }} \
                                                  --group ${{ matrix.pytest-split-group }} \
@@ -213,6 +210,7 @@ jobs:
         with:
           name: test_durations-split-${{ matrix.pytest-split-group }}
           path: test/.test_durations.json
+          retention-days: 1
 
   upload-pytest-timings-artifact:
     needs: cpu-tests
@@ -237,6 +235,7 @@ jobs:
         with:
           name: test_durations
           path: test_durations.json
+          retention-days: 1
 
   retag-docker-image-cpu:
     needs: [cpu-tests, build-docker-image-cpu]
