@@ -202,7 +202,7 @@ jobs:
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest test/${{ matrix.pytest-split }} --disable-warnings
         #run: MALA_DATA_REPO=$(pwd)/mala_data pytest --store-durations --disable-warnings
         run: |
-          MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 \
+          MALA_DATA_REPO=$(pwd)/mala_data pytest --splits ${{ strategy.job-total }} \
                                                  --group ${{ matrix.pytest-split-group }} \
                                                  --durations-path test/.test_durations.json \
                                                  --store-durations \
