@@ -115,7 +115,7 @@ jobs:
       DOCKER_TAG: ${{ needs.build-docker-image-cpu.outputs.docker-tag }}
     strategy:
       matrix:
-        pytest-split-group: [1, 2, 3] #, tests_2]
+        pytest-split-group: [1, 2, 3, 4, 5]
     steps:
       - name: "Prepare environment: Restore cache"
         if: env.DOCKER_TAG != 'latest'
@@ -215,6 +215,8 @@ jobs:
   upload-pytest-timings-artifact:
     needs: cpu-tests
     runs-on: ubuntu-20.04
+    env:
+      PYTEST-GROUPS: 5
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2
@@ -222,9 +224,9 @@ jobs:
       - name: Combine test duration files
         shell: python
         run: |
-          import json
+          import json, os
           test_durations = {}
-          for group in range(1, 4):
+          for group in range(1, os.environ.get("PYTEST-GROUPS") + 1):
               with open(f"test_durations-split-{group}/.test_durations.json") as f:
                   test_durations.update(json.load(f))
           with open("test_durations.json", "w") as f:
