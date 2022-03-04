@@ -116,7 +116,7 @@ jobs:
       PYTEST_GROUPS: ${{ strategy.job-total }}
     strategy:
       matrix:
-        pytest-split-group: [1, 2, 3, 4]
+        pytest-split-group: [1, 2, 3]
     steps:
       - name: "Prepare environment: Restore cache"
         if: env.DOCKER_TAG != 'latest'
@@ -225,6 +225,12 @@ jobs:
     env:
       PYTEST_GROUPS: ${{ needs.cpu-tests.outputs.pytest-groups }}
     steps:
+      - name: Check out repository (mala)
+        uses: actions/checkout@v2
+        with:
+          repository: DanielKotik/mala
+          ref: split-pytest
+
       - name: Download artifacts
         uses: actions/download-artifact@v2
 
@@ -232,12 +238,23 @@ jobs:
         shell: python
         run: |
           import json, os
-          test_durations = {}
-          for group in range(1, int(os.environ["PYTEST_GROUPS"]) + 1):
-              with open(f"test_durations-split-{group}/.test_durations.json") as f:
-                  test_durations.update(json.load(f))
+          test_durations_org = {}
+          tmp = {}
+          test_durations_new = {}
+
+          with open(f"test/.test_durations.json", "r") as f:
+            test_durations_org.update(json.load(f))
+
+          set_org = set(test_durations_org.items())
+
+          for group in range(int(os.environ["PYTEST_GROUPS"])):
+            with open(f"test_durations-split-{group + 1}/.test_durations.json", "r") as f:
+              tmp.update(json.load(f))
+              set_tmp = set(tmp.items())
+              test_durations_new.update(set_tmp - set_org)
+
           with open("test_durations.json", "w") as f:
-              json.dump(test_durations, f, indent=1)
+            json.dump(test_durations_new, f, indent=4, sort_keys=True)
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
