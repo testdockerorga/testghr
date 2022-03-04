@@ -203,7 +203,7 @@ jobs:
         run: |
           MALA_DATA_REPO=$(pwd)/mala_data pytest --splits 3 \
                                                  --group ${{ matrix.pytest-split-group }} \
-                                                 --durations-path test/.test_durations \
+                                                 --durations-path test/.test_durations.json \
                                                  --store-durations \
                                                  --disable-warnings
 
@@ -211,7 +211,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: test_duration-split-${{ matrix.pytest-split-group }}
-          path: test/.test_durations
+          path: test/.test_durations.json
 
   upload-pytest-timings-artifact:
     needs: cpu-tests
@@ -226,7 +226,7 @@ jobs:
           import json
           test_durations = {}
           for group in range(1, 4):
-              with open(f"test_duration-split-{group}/.test_durations") as f:
+              with open(f"test_duration-split-{group}/.test_durations.json") as f:
                   test_durations.update(json.load(f))
           with open("test_durations_update.json", "w") as f:
               json.dump(test_durations, f, indent=1)
