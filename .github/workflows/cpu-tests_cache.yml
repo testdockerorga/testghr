@@ -174,9 +174,10 @@ jobs:
           pip --no-cache-dir install -e .
 
           # install extra dependencies
-          pip install oapackage
-          pip install pytest
-          pip install pytest-split
+          pip install oapackage \
+                      pytest \
+                      pytest-split \
+                      pytest-custom_exit_code
 
       - name: Check if Conda environment meets the specified requirements
         shell: 'bash -c "docker exec -i mala-cpu bash < {0}"'
@@ -203,6 +204,7 @@ jobs:
                                                  --group ${{ matrix.pytest-split-group }} \
                                                  --durations-path test/.test_durations.json \
                                                  --store-durations \
+                                                 --suppress-no-test-exit-code \
                                                  --disable-warnings
 
       - name: Upload artifact
@@ -226,7 +228,7 @@ jobs:
         run: |
           import json, os
           test_durations = {}
-          for group in range(1, os.environ.get("PYTEST-GROUPS") + 1):
+          for group in range(1, int(os.environ["PYTEST-GROUPS"]) + 1):
               with open(f"test_durations-split-{group}/.test_durations.json") as f:
                   test_durations.update(json.load(f))
           with open("test_durations.json", "w") as f:
