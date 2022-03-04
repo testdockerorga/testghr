@@ -113,9 +113,10 @@ jobs:
     env:
       IMAGE_REPO: ${{ needs.build-docker-image-cpu.outputs.image-repo }}
       DOCKER_TAG: ${{ needs.build-docker-image-cpu.outputs.docker-tag }}
+      PYTEST_GROUPS: ${{ strategy.job-total }}
     strategy:
       matrix:
-        pytest-split-group: [1, 2, 3, 4, 5]
+        pytest-split-group: [1, 2, 3, 4]
     steps:
       - name: "Prepare environment: Restore cache"
         if: env.DOCKER_TAG != 'latest'
@@ -214,11 +215,15 @@ jobs:
           path: test/.test_durations.json
           retention-days: 1
 
+    outputs:
+      # Make variables available to all downstream jobs that depend on this job
+      pytest-groups: ${{ env.PYTEST_GROUPS }}
+
   upload-pytest-timings-artifact:
     needs: cpu-tests
     runs-on: ubuntu-20.04
     env:
-      PYTEST-GROUPS: 5
+      PYTEST_GROUPS: ${{ needs.cpu-tests.outputs.pytest-groups }}
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v2
@@ -228,7 +233,7 @@ jobs:
         run: |
           import json, os
           test_durations = {}
-          for group in range(1, int(os.environ["PYTEST-GROUPS"]) + 1):
+          for group in range(1, int(os.environ["PYTEST_GROUPS"]) + 1):
               with open(f"test_durations-split-{group}/.test_durations.json") as f:
                   test_durations.update(json.load(f))
           with open("test_durations.json", "w") as f:
